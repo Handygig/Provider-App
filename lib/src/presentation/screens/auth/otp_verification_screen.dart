@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/provider_details_screen.dart';
+import 'package:provider_app/src/presentation/widgets/dev_bypass_sheet.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -181,6 +183,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         ),
       ),
     );
+  }
+
+  void _bypassOtp() {
+    HapticFeedback.mediumImpact();
+    DevBypassSheet.bypassToHome(context);
   }
 
   @override
@@ -458,13 +465,22 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
 
                                         const Spacer(),
 
-                                        // Verify Button
+                                        // Verify Button & Dev Bypass
                                         Padding(
                                           padding: EdgeInsets.only(
                                             bottom: 20.h,
                                             top: 16.h,
                                           ),
-                                          child: _buildVerifyButton(),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              _buildVerifyButton(),
+                                              if (kDebugMode || !kReleaseMode) ...[
+                                                SizedBox(height: 12.h),
+                                                _buildDevBypassButton(),
+                                              ],
+                                            ],
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -603,6 +619,51 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                   ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildDevBypassButton() {
+    return Container(
+      width: double.infinity,
+      height: 50.h,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(25.r),
+        border: Border.all(
+          color: const Color(0xFFFFB74D),
+          width: 1.2,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(25.r),
+          onTap: _bypassOtp,
+          onLongPress: () => DevBypassSheet.show(
+            context,
+            currentPhoneNumber: widget.phoneNumber,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.bolt_rounded,
+                color: const Color(0xFFEA580C),
+                size: 20.r,
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                'Bypass to Home Page (Dev)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFC2410C),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,0 +1,378 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider_app/core/constants/app_assets.dart';
+import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:provider_app/src/presentation/screens/welcome/welcome_screen.dart';
+
+class ProfileTab extends StatelessWidget {
+  const ProfileTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFBFBFB),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            // Profile Hero Image Header with Smooth Bottom Fade
+            Stack(
+              children: [
+                // 1. Background Profile Header Image
+                SizedBox(
+                  height: 280.h,
+                  width: double.infinity,
+                  child: Image.asset(
+                    AppAssets.profileHeader,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [AppColors.primaryDark, AppColors.primary],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 80.r,
+                            color: Colors.white12,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // 2. Smooth Bottom Gradient Mask
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.0, 0.35, 0.72, 1.0],
+                        colors: [
+                          Colors.black.withValues(alpha: 0.35),
+                          Colors.transparent,
+                          const Color(0xFFFBFBFB).withValues(alpha: 0.8),
+                          const Color(0xFFFBFBFB),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 3. User Avatar and Info Overlaid
+                Positioned(
+                  left: 20.w,
+                  right: 20.w,
+                  bottom: 12.h,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 72.r,
+                        height: 72.r,
+                        decoration: BoxDecoration(
+                          color: AppColors.sage,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            'AP',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 26.sp,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primaryDark,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 14.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'Alex Perera',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 20.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textHeadline,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 6.w),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8.w,
+                                    vertical: 3.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentLime,
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Text(
+                                    'VERIFIED',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              '+94 77 123 4567 • Colombo, LK',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.5.sp,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // Performance / Stats Card
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+              child: Container(
+                padding: EdgeInsets.all(16.r),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(
+                    color: AppColors.borderUnselected,
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatCol('Jobs Done', '142'),
+                    Container(
+                        height: 30.h,
+                        width: 1,
+                        color: AppColors.borderUnselected),
+                    _buildStatCol('Rating', '4.9 ★'),
+                    Container(
+                        height: 30.h,
+                        width: 1,
+                        color: AppColors.borderUnselected),
+                    _buildStatCol('Total Earned', '\$4.8k'),
+                  ],
+                ),
+              ),
+            ),
+
+            // Settings & Profile Options List
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Column(
+                children: [
+                  _buildMenuTile(
+                    icon: Icons.badge_outlined,
+                    title: 'License & Verification',
+                    subtitle: 'National ID, Business registration, Skills',
+                    onTap: () {},
+                  ),
+                  _buildMenuTile(
+                    icon: Icons.account_balance_outlined,
+                    title: 'Bank & Payout Details',
+                    subtitle: 'Commercial Bank of Ceylon •••• 4210',
+                    onTap: () {},
+                  ),
+                  _buildMenuTile(
+                    icon: Icons.build_outlined,
+                    title: 'Managed Services & Skills',
+                    subtitle: 'Plumbing, AC Service, Electrical Maintenance',
+                    onTap: () {},
+                  ),
+                  _buildMenuTile(
+                    icon: Icons.access_time_rounded,
+                    title: 'Working Hours & Coverage Area',
+                    subtitle: 'Mon - Sat (8:00 AM - 6:00 PM) • Colombo 1-15',
+                    onTap: () {},
+                  ),
+                  _buildMenuTile(
+                    icon: Icons.notifications_none_rounded,
+                    title: 'Notification Preferences',
+                    subtitle: 'Instant SMS & Push Alerts enabled',
+                    onTap: () {},
+                  ),
+                  _buildMenuTile(
+                    icon: Icons.help_outline_rounded,
+                    title: 'Help & Partner Support',
+                    subtitle: '24/7 dedicated support team',
+                    onTap: () {},
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Log Out Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const WelcomeScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      icon: const Icon(Icons.logout_rounded,
+                          color: Color(0xFFEF4444), size: 20),
+                      label: Text(
+                        'Log Out of Partner Account',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFEF4444),
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFFCA5A5)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25.r),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Bottom padding for floating navigation bar
+                  SizedBox(height: 120.h),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCol(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textHeadline,
+          ),
+        ),
+        SizedBox(height: 2.h),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12.sp,
+            color: AppColors.textMuted,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMenuTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 10.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: AppColors.borderUnselected,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        leading: Container(
+          width: 40.r,
+          height: 40.r,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.09),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: AppColors.primary,
+            size: 20.r,
+          ),
+        ),
+        title: Text(
+          title,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textHeadline,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11.5.sp,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: Colors.grey,
+          size: 22,
+        ),
+      ),
+    );
+  }
+}

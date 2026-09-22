@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/otp_verification_screen.dart';
+import 'package:provider_app/src/presentation/widgets/dev_bypass_sheet.dart';
 
 class CountryCode {
   final String flag;
@@ -248,6 +250,21 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
     );
   }
 
+  void _handleDevBypass() {
+    DevBypassSheet.bypassToHome(context);
+  }
+
+  void _handleDevOptions() {
+    final fullNumber = _phoneController.text.trim().isNotEmpty
+        ? '${_selectedCountry.code} ${_phoneController.text.trim()}'
+        : DevBypassSheet.defaultTestPhone;
+
+    DevBypassSheet.show(
+      context,
+      currentPhoneNumber: fullNumber,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -485,13 +502,22 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
 
                                         const Spacer(),
 
-                                        // Send Code Button
+                                        // Send Code Button & Dev Bypass
                                         Padding(
                                           padding: EdgeInsets.only(
                                             bottom: 20.h,
                                             top: 16.h,
                                           ),
-                                          child: _buildSendCodeButton(),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              _buildSendCodeButton(),
+                                              if (kDebugMode || !kReleaseMode) ...[
+                                                SizedBox(height: 12.h),
+                                                _buildDevBypassButton(),
+                                              ],
+                                            ],
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -665,6 +691,82 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
               size: 22,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDevBypassButton() {
+    return Container(
+      width: double.infinity,
+      height: 52.h,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(26.r),
+        border: Border.all(
+          color: const Color(0xFFFFB74D),
+          width: 1.2,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(26.r),
+          onTap: _handleDevBypass,
+          onLongPress: _handleDevOptions,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(6.r),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEDD5),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Icon(
+                    Icons.bolt_rounded,
+                    color: const Color(0xFFEA580C),
+                    size: 18.r,
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Bypass to Home Page (Dev)',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFC2410C),
+                        ),
+                      ),
+                      Text(
+                        'Skip login & enter Provider Home Dashboard',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF9A3412),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Dev Screen Jump',
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    color: const Color(0xFFC2410C),
+                    size: 20.r,
+                  ),
+                  onPressed: _handleDevOptions,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

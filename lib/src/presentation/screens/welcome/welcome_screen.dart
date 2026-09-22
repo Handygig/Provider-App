@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/language/language_selection_screen.dart';
+import 'package:provider_app/src/presentation/widgets/dev_bypass_sheet.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -246,6 +248,57 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           ],
                         ),
                       ),
+                      if (kDebugMode || !kReleaseMode) ...[
+                        SizedBox(width: 8.w),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20.r),
+                            onTap: () => DevBypassSheet.bypassToHome(context),
+                            onLongPress: () => DevBypassSheet.show(context),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10.w,
+                                vertical: 6.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF3E0),
+                                borderRadius: BorderRadius.circular(20.r),
+                                border: Border.all(
+                                  color: const Color(0xFFFFB74D),
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.bolt_rounded,
+                                    color: const Color(0xFFE65100),
+                                    size: 15.r,
+                                  ),
+                                  SizedBox(width: 3.w),
+                                  Text(
+                                    'Dev Skip',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11.5.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFFE65100),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
