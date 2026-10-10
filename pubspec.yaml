@@ -11,6 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_bloc: ^8.1.5
+  dartz: ^0.10.1
   cupertino_icons: ^1.0.8
   country_flags: ^4.1.2
   connectivity_plus: ^7.1.1
@@ -29,6 +31,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -36,3 +39,9 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/icon.jpeg"
+  min_sdk_android: 21
