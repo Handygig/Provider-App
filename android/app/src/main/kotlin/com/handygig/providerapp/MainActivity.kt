@@ -1,4 +1,4 @@
-package com.example.provider_app
+package com.handygig.providerapp
 
 import io.flutter.embedding.android.FlutterActivity
 
