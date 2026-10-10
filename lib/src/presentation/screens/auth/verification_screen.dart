@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/under_review_screen.dart';
+import 'package:provider_app/src/presentation/blocs/auth/auth_bloc.dart';
+import 'package:provider_app/src/presentation/blocs/auth/auth_event.dart';
+import 'package:provider_app/src/presentation/blocs/auth/auth_state.dart';
 
 class VerificationScreen extends StatefulWidget {
   final String firstName;
@@ -15,6 +19,11 @@ class VerificationScreen extends StatefulWidget {
   final String providerType;
   final String? regNumber;
   final String? taxId;
+  final String addressLine1;
+  final String? addressLine2;
+  final String city;
+  final String postalCode;
+  final List<String> services;
 
   const VerificationScreen({
     super.key,
@@ -25,6 +34,11 @@ class VerificationScreen extends StatefulWidget {
     required this.providerType,
     this.regNumber,
     this.taxId,
+    required this.addressLine1,
+    this.addressLine2,
+    required this.city,
+    required this.postalCode,
+    required this.services,
   });
 
   @override
@@ -164,11 +178,25 @@ class _VerificationScreenState extends State<VerificationScreen>
     if (!_formValid) return;
     HapticFeedback.mediumImpact();
 
-    Navigator.of(context).push(
-      CupertinoPageRoute(
-        builder: (context) => UnderReviewScreen(
-          firstName: widget.firstName,
-        ),
+    context.read<AuthBloc>().add(
+      CompleteProfileRequested(
+        providerType: widget.providerType,
+        firstName: widget.firstName,
+        lastName: widget.lastName,
+        email: widget.email,
+        regNumber: widget.regNumber,
+        taxId: widget.taxId,
+        addressLine1: widget.addressLine1,
+        addressLine2: widget.addressLine2,
+        city: widget.city,
+        state: 'Not Provided',
+        postalCode: widget.postalCode,
+        country: 'Sri Lanka',
+        nicFrontPath: _nicFrontName,
+        nicBackPath: _nicBackName,
+        brCertificatePath: _brDocName,
+        services: widget.services,
+        profileImagePath: null,
       ),
     );
   }
@@ -190,7 +218,25 @@ class _VerificationScreenState extends State<VerificationScreen>
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: Scaffold(
+      child: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthProfileCompleted) {
+            Navigator.of(context).pushReplacement(
+              CupertinoPageRoute(
+                builder: (context) => UnderReviewScreen(
+                  firstName: widget.firstName,
+                ),
+              ),
+            );
+          } else if (state is AuthFailure && state.operation == AuthOperation.completeProfile) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading && state.operation == AuthOperation.completeProfile;
+          return Scaffold(
         backgroundColor: AppColors.darkHeaderBg,
         body: Stack(
           children: [
@@ -499,7 +545,9 @@ class _VerificationScreenState extends State<VerificationScreen>
             ),
           ],
         ),
-      ),
+      );
+    },
+    ),
     );
   }
 
@@ -637,12 +685,12 @@ class _VerificationScreenState extends State<VerificationScreen>
     );
   }
 
-  Widget _buildContinueButton() {
+  Widget _buildContinueButton(bool isLoading) {
     return SizedBox(
       width: double.infinity,
       height: 56.h,
       child: ElevatedButton(
-        onPressed: _formValid ? _handleContinue : null,
+        onPressed: (_formValid && !isLoading) ? _handleContinue : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.buttonBackground,
           disabledBackgroundColor: AppColors.sage.withValues(alpha: 0.4),
@@ -654,26 +702,35 @@ class _VerificationScreenState extends State<VerificationScreen>
           ),
           padding: EdgeInsets.symmetric(horizontal: 24.w),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Finish',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 17.sp,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 0.1,
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Finish',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  const Icon(
+                    Icons.check_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ],
               ),
-            ),
-            SizedBox(width: 8.w),
-            const Icon(
-              Icons.check_rounded,
-              color: Colors.white,
-              size: 22,
-            ),
-          ],
-        ),
       ),
     );
   }

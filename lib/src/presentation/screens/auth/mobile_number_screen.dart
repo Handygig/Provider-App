@@ -8,6 +8,10 @@ import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/otp_verification_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dev_bypass_sheet.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider_app/src/presentation/blocs/auth/auth_bloc.dart';
+import 'package:provider_app/src/presentation/blocs/auth/auth_event.dart';
+import 'package:provider_app/src/presentation/blocs/auth/auth_state.dart';
 
 class CountryCode {
   final String flag;
@@ -241,13 +245,7 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
     HapticFeedback.mediumImpact();
     final fullNumber = '${_selectedCountry.code} ${_phoneController.text}';
 
-    Navigator.of(context).push(
-      CupertinoPageRoute(
-        builder: (context) => OtpVerificationScreen(
-          phoneNumber: fullNumber,
-        ),
-      ),
-    );
+    context.read<AuthBloc>().add(SendOtpRequested(fullNumber));
   }
 
   void _handleDevBypass() {
@@ -273,7 +271,26 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: Scaffold(
+      child: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthOtpSent) {
+            Navigator.of(context).push(
+              CupertinoPageRoute(
+                builder: (context) => OtpVerificationScreen(
+                  phoneNumber: state.phoneNumber,
+                  verificationId: state.session.verificationId,
+                ),
+              ),
+            );
+          } else if (state is AuthFailure && state.operation == AuthOperation.sendOtp) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading && state.operation == AuthOperation.sendOtp;
+          return Scaffold(
         backgroundColor: AppColors.darkHeaderBg,
         body: Stack(
           children: [
@@ -511,7 +528,7 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              _buildSendCodeButton(),
+                                              _buildSendCodeButton(isLoading),
                                               if (kDebugMode || !kReleaseMode) ...[
                                                 SizedBox(height: 12.h),
                                                 _buildDevBypassButton(),
@@ -535,7 +552,9 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
             ),
           ],
         ),
-      ),
+      );
+    },
+    ),
     );
   }
 
@@ -655,12 +674,12 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
     );
   }
 
-  Widget _buildSendCodeButton() {
+  Widget _buildSendCodeButton(bool isLoading) {
     return SizedBox(
       width: double.infinity,
       height: 56.h,
       child: ElevatedButton(
-        onPressed: _isValidNumber ? _handleSendCode : null,
+        onPressed: (_isValidNumber && !isLoading) ? _handleSendCode : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.buttonBackground,
           disabledBackgroundColor: AppColors.sage.withValues(alpha: 0.4),
@@ -672,26 +691,35 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
           ),
           padding: EdgeInsets.symmetric(horizontal: 24.w),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Send Code',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 0.1,
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Send Code',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ],
               ),
-            ),
-            SizedBox(width: 8.w),
-            const Icon(
-              Icons.arrow_forward_rounded,
-              color: Colors.white,
-              size: 22,
-            ),
-          ],
-        ),
       ),
     );
   }

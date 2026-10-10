@@ -27,6 +27,10 @@ class ServiceAssignmentScreen extends StatefulWidget {
   final String providerType;
   final String? regNumber;
   final String? taxId;
+  final String addressLine1;
+  final String? addressLine2;
+  final String city;
+  final String postalCode;
 
   const ServiceAssignmentScreen({
     super.key,
@@ -37,6 +41,10 @@ class ServiceAssignmentScreen extends StatefulWidget {
     required this.providerType,
     this.regNumber,
     this.taxId,
+    required this.addressLine1,
+    this.addressLine2,
+    required this.city,
+    required this.postalCode,
   });
 
   @override
@@ -159,6 +167,11 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen>
           providerType: widget.providerType,
           regNumber: widget.regNumber,
           taxId: widget.taxId,
+          addressLine1: widget.addressLine1,
+          addressLine2: widget.addressLine2,
+          city: widget.city,
+          postalCode: widget.postalCode,
+          services: _selectedCategories.toList(),
         ),
       ),
     );

@@ -173,6 +173,10 @@ class _LivingDetailsScreenState extends State<LivingDetailsScreen>
           providerType: widget.providerType,
           regNumber: widget.regNumber,
           taxId: widget.taxId,
+          addressLine1: _addressLine1Controller.text.trim(),
+          addressLine2: _addressLine2Controller.text.trim(),
+          city: _cityController.text.trim(),
+          postalCode: _postalCodeController.text.trim(),
         ),
       ),
     );

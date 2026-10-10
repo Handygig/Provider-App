@@ -9,13 +9,19 @@ import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/provider_details_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dev_bypass_sheet.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider_app/src/presentation/blocs/auth/auth_bloc.dart';
+import 'package:provider_app/src/presentation/blocs/auth/auth_event.dart';
+import 'package:provider_app/src/presentation/blocs/auth/auth_state.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
+  final String verificationId;
 
   const OtpVerificationScreen({
     super.key,
     required this.phoneNumber,
+    required this.verificationId,
   });
 
   @override
@@ -160,29 +166,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     _checkOtpCompletion();
   }
 
-  void _verifyOtp() async {
-    if (_isVerifying) return;
+  void _verifyOtp() {
     HapticFeedback.mediumImpact();
-
-    setState(() {
-      _isVerifying = true;
-    });
-
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    if (!mounted) return;
-
-    setState(() {
-      _isVerifying = false;
-    });
-
-    Navigator.of(context).pushReplacement(
-      CupertinoPageRoute(
-        builder: (context) => ProviderDetailsScreen(
-          phoneNumber: widget.phoneNumber,
-        ),
-      ),
-    );
+    final smsCode = _controllers.map((c) => c.text).join();
+    context.read<AuthBloc>().add(VerifyOtpRequested(
+      verificationId: widget.verificationId,
+      smsCode: smsCode,
+    ));
   }
 
   void _bypassOtp() {
@@ -198,7 +188,25 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
       ),
-      child: Scaffold(
+      child: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthAuthenticated) {
+            Navigator.of(context).pushReplacement(
+              CupertinoPageRoute(
+                builder: (context) => ProviderDetailsScreen(
+                  phoneNumber: widget.phoneNumber,
+                ),
+              ),
+            );
+          } else if (state is AuthFailure && state.operation == AuthOperation.verifyOtp) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading && state.operation == AuthOperation.verifyOtp;
+          return Scaffold(
         backgroundColor: AppColors.darkHeaderBg,
         body: Stack(
           children: [
@@ -474,7 +482,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              _buildVerifyButton(),
+                                              _buildVerifyButton(isLoading),
                                               if (kDebugMode || !kReleaseMode) ...[
                                                 SizedBox(height: 12.h),
                                                 _buildDevBypassButton(),
@@ -498,7 +506,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
             ),
           ],
         ),
-      ),
+      );
+    },
+    ),
     );
   }
 
@@ -573,12 +583,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     );
   }
 
-  Widget _buildVerifyButton() {
+  Widget _buildVerifyButton(bool isLoading) {
     return SizedBox(
       width: double.infinity,
       height: 56.h,
       child: ElevatedButton(
-        onPressed: (_isComplete && !_isVerifying) ? _verifyOtp : null,
+        onPressed: (_isComplete && !isLoading) ? _verifyOtp : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.buttonBackground,
           disabledBackgroundColor: AppColors.sage.withValues(alpha: 0.4),
@@ -590,7 +600,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
           ),
           padding: EdgeInsets.symmetric(horizontal: 24.w),
         ),
-        child: _isVerifying
+        child: isLoading
             ? const SizedBox(
                 width: 24,
                 height: 24,
@@ -603,7 +613,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Verify & Continue',
+                    'Verify Code',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.w700,
@@ -626,10 +636,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   Widget _buildDevBypassButton() {
     return Container(
       width: double.infinity,
-      height: 50.h,
+      height: 52.h,
       decoration: BoxDecoration(
         color: const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(25.r),
+        borderRadius: BorderRadius.circular(26.r),
         border: Border.all(
           color: const Color(0xFFFFB74D),
           width: 1.2,
@@ -638,30 +648,61 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(25.r),
+          borderRadius: BorderRadius.circular(26.r),
           onTap: _bypassOtp,
-          onLongPress: () => DevBypassSheet.show(
-            context,
-            currentPhoneNumber: widget.phoneNumber,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.bolt_rounded,
-                color: const Color(0xFFEA580C),
-                size: 20.r,
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                'Bypass to Home Page (Dev)',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFC2410C),
+          onLongPress: _bypassOtp,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(6.r),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEDD5),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Icon(
+                    Icons.bolt_rounded,
+                    color: const Color(0xFFEA580C),
+                    size: 18.r,
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Bypass OTP (Dev)',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFC2410C),
+                        ),
+                      ),
+                      Text(
+                        'Skip verification & proceed to details',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF9A3412),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Dev Screen Jump',
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    color: const Color(0xFFC2410C),
+                    size: 20.r,
+                  ),
+                  onPressed: _bypassOtp,
+                ),
+              ],
+            ),
           ),
         ),
       ),
