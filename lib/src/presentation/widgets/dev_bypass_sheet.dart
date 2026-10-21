@@ -134,6 +134,10 @@ class DevBypassSheet {
           phoneNumber: defaultTestPhone,
           email: 'alex.perera@example.com',
           providerType: 'individual',
+          addressLine1: '123 Galle Road',
+          addressLine2: 'Apt 4B',
+          city: 'Colombo',
+          postalCode: '00300',
         ),
       ),
     );
@@ -149,6 +153,11 @@ class DevBypassSheet {
           phoneNumber: defaultTestPhone,
           email: 'alex.perera@example.com',
           providerType: 'individual',
+          addressLine1: '123 Galle Road',
+          addressLine2: 'Apt 4B',
+          city: 'Colombo',
+          postalCode: '00300',
+          services: ['Plumbing', 'Electrical'],
         ),
       ),
     );

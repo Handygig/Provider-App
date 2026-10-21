@@ -533,7 +533,7 @@ class _VerificationScreenState extends State<VerificationScreen>
                             position: _contentSlideAnimation,
                             child: FadeTransition(
                               opacity: _contentFadeAnimation,
-                              child: _buildContinueButton(),
+                              child: _buildContinueButton(isLoading),
                             ),
                           ),
                         ),

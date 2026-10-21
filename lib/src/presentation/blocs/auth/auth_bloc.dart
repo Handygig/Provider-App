@@ -1,4 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider_app/src/data/repositories/auth/mock_auth_repository.dart';
+import 'package:provider_app/src/domain/repositories/auth/auth_repository.dart';
 import 'package:provider_app/src/domain/usecases/auth/complete_profile_usecase.dart';
 import 'package:provider_app/src/domain/usecases/auth/login_with_firebase_usecase.dart';
 import 'package:provider_app/src/domain/usecases/auth/logout_usecase.dart';
@@ -15,6 +17,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginWithFirebaseUsecase _loginWithFirebase;
   final CompleteProfileUseCase _completeProfile;
   final LogoutUsecase _logout;
+
+  factory AuthBloc.createDefault({AuthRepository? repository}) {
+    final repo = repository ?? MockAuthRepository();
+    return AuthBloc(
+      sendOtp: SendOtpUsecase(repo),
+      resendOtp: ResendOtpUsecase(repo),
+      verifyOtpAndRegister: VerifyOtpAndRegisterUsecase(repo),
+      loginWithFirebase: LoginWithFirebaseUsecase(repo),
+      completeProfile: CompleteProfileUseCase(repo),
+      logout: LogoutUsecase(repo),
+    );
+  }
 
   AuthBloc({
     required SendOtpUsecase sendOtp,
