@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -307,7 +306,7 @@ class _ChatScreenState extends State<ChatScreen> {
             'Camera hardware is not accessible on this device or simulator. Would you like to select a photo from your gallery instead?',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13.sp,
-              color: AppColors.textBody,
+              color: AppColors.textPrimary,
               height: 1.4,
             ),
           ),
@@ -990,7 +989,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               width: 220.w,
                               height: 160.h,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              errorBuilder: (context, error, stackTrace) => Container(
                                 width: 220.w,
                                 height: 160.h,
                                 color: const Color(0xFFE2E4DE),

@@ -134,6 +134,7 @@ class JobModel {
   String? extraReason;
   ExtraApprovalStatus extraStatus;
   final String paymentMethod;
+  final DateTime? jobDate;
 
   JobModel({
     required this.id,
@@ -159,7 +160,10 @@ class JobModel {
     this.extraReason,
     this.extraStatus = ExtraApprovalStatus.none,
     this.paymentMethod = 'Cash on Delivery',
+    this.jobDate,
   });
+
+  DateTime get effectiveDate => jobDate ?? DateTime.now();
 
   double get totalEffectivePrice =>
       (quotedAmount ?? estimatedBudget ?? 0.0) +

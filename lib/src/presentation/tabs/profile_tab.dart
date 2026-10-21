@@ -4,6 +4,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:provider_app/src/data/services/verification_service.dart';
+import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
 import 'package:provider_app/src/presentation/screens/welcome/welcome_screen.dart';
 
 class ProfileTab extends StatelessWidget {
@@ -11,7 +13,12 @@ class ProfileTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AnimatedBuilder(
+      animation: VerificationService.instance,
+      builder: (context, _) {
+        final status = VerificationService.instance.status;
+
+        return Scaffold(
       backgroundColor: const Color(0xFFFBFBFB),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -123,21 +130,39 @@ class ProfileTab extends StatelessWidget {
                                   ),
                                 ),
                                 SizedBox(width: 6.w),
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 8.w,
-                                    vertical: 3.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.accentLime,
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  child: Text(
-                                    'VERIFIED',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.primaryDark,
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const LicenseVerificationScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 8.w,
+                                      vertical: 3.h,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: status == VerificationStatus.approved
+                                          ? AppColors.accentLime
+                                          : status.backgroundColor,
+                                      borderRadius: BorderRadius.circular(8.r),
+                                      border: Border.all(
+                                        color: status.color.withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      status.badgeText,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: status == VerificationStatus.approved
+                                            ? AppColors.primaryDark
+                                            : status.color,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -208,8 +233,48 @@ class ProfileTab extends StatelessWidget {
                   _buildMenuTile(
                     icon: Icons.badge_outlined,
                     title: 'License & Verification',
-                    subtitle: 'National ID, Business registration, Skills',
-                    onTap: () {},
+                    subtitle: status == VerificationStatus.approved
+                        ? 'All documents approved • Verified'
+                        : (status == VerificationStatus.pending
+                            ? 'Under admin review (Usually 2-24h)'
+                            : 'National ID, Business registration, Skills'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const LicenseVerificationScreen(),
+                        ),
+                      );
+                    },
+                    trailing: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 7.w, vertical: 3.h),
+                      decoration: BoxDecoration(
+                        color: status.backgroundColor,
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(
+                            color: status.color.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            status.badgeText,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9.5.sp,
+                              fontWeight: FontWeight.w800,
+                              color: status.color,
+                            ),
+                          ),
+                          SizedBox(width: 2.w),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: status.color,
+                            size: 16.r,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   _buildMenuTile(
                     icon: Icons.account_balance_outlined,
@@ -285,6 +350,8 @@ class ProfileTab extends StatelessWidget {
         ),
       ),
     );
+      },
+    );
   }
 
   Widget _buildStatCol(String label, String value) {
@@ -316,6 +383,7 @@ class ProfileTab extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return Container(
       margin: EdgeInsets.only(bottom: 10.h),
@@ -367,11 +435,12 @@ class ProfileTab extends StatelessWidget {
             color: AppColors.textSecondary,
           ),
         ),
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
-          color: Colors.grey,
-          size: 22,
-        ),
+        trailing: trailing ??
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey,
+              size: 22,
+            ),
       ),
     );
   }

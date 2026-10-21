@@ -9,6 +9,8 @@ import 'package:provider_app/src/presentation/screens/jobs/jobs_screen.dart';
 import 'package:provider_app/src/presentation/tabs/alerts_tab.dart';
 import 'package:provider_app/src/presentation/tabs/profile_tab.dart';
 import 'package:provider_app/src/presentation/tabs/wallet_tab.dart';
+import 'package:provider_app/src/data/services/verification_service.dart';
+import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 import 'package:provider_app/src/presentation/widgets/incoming_quotation_request_drawer.dart';
 
@@ -188,12 +190,193 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onTabSelected(int index) {
+    if ((index == 1 || index == 2) && !VerificationService.instance.isApproved) {
+      _showVerificationLockedModal(
+        context,
+        pageName: index == 1 ? 'Jobs' : 'Wallet',
+      );
+      return;
+    }
+
     if (_currentIndex != index) {
       HapticFeedback.mediumImpact();
       setState(() {
         _currentIndex = index;
       });
     }
+  }
+
+  void _showVerificationLockedModal(
+    BuildContext context, {
+    required String pageName,
+  }) {
+    HapticFeedback.heavyImpact();
+    final status = VerificationService.instance.status;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.fromLTRB(22.w, 14.h, 22.w, 34.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38.w,
+                height: 4.5.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E4DE),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
+              SizedBox(height: 22.h),
+              Container(
+                width: 64.r,
+                height: 64.r,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFFDE68A), width: 2),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.lock_rounded,
+                    size: 30.r,
+                    color: const Color(0xFFD97706),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                '$pageName Locked',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 19.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textHeadline,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                status == VerificationStatus.pending
+                    ? 'Your identity documents are currently under admin review. Once an administrator approves your account, you will have full access to $pageName.'
+                    : 'To access $pageName, you must upload your National ID, Business Registration, and Trade License for admin review and approval.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.5.sp,
+                  height: 1.5,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: status.backgroundColor,
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: status.color.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      status == VerificationStatus.pending
+                          ? Icons.schedule_rounded
+                          : Icons.error_outline_rounded,
+                      size: 16.r,
+                      color: status.color,
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Status: ${status.title}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: status.color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 22.h),
+              SizedBox(
+                width: double.infinity,
+                height: 50.h,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LicenseVerificationScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.verified_user_rounded,
+                      color: Colors.white, size: 20),
+                  label: Text(
+                    status == VerificationStatus.pending
+                        ? 'Check Verification Details'
+                        : 'Upload Documents Now',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.5.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 10.h),
+              SizedBox(
+                width: double.infinity,
+                height: 46.h,
+                child: TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    setState(() => _currentIndex = 0);
+                  },
+                  icon: const Icon(Icons.home_rounded,
+                      color: AppColors.primary, size: 18),
+                  label: Text(
+                    'Return to Home Page',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _toggleOnlineStatus(bool value) {
@@ -209,6 +392,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _acceptJob(int index) {
+    if (!VerificationService.instance.isApproved) {
+      _showVerificationLockedModal(
+        context,
+        pageName: 'Accepting Job Requests',
+      );
+      return;
+    }
+
     HapticFeedback.mediumImpact();
     final rawJob = _jobRequests[index];
     final job = JobModel(
@@ -250,36 +441,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.transparent,
-      ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF7F8F3),
-        body: Stack(
-          children: [
-            // Active Tab View (Home, Jobs, Wallet, Alerts, Profile)
-            IndexedStack(
-              index: _currentIndex,
+    return AnimatedBuilder(
+      animation: VerificationService.instance,
+      builder: (context, _) {
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: Colors.transparent,
+          ),
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF7F8F3),
+            body: Stack(
               children: [
-                _buildHomeTab(),
-                const JobsScreen(),
-                const WalletTab(),
-                const AlertsTab(),
-                const ProfileTab(),
+                // Active Tab View (Home, Jobs, Wallet, Alerts, Profile)
+                IndexedStack(
+                  index: _currentIndex,
+                  children: [
+                    _buildHomeTab(),
+                    const JobsScreen(),
+                    const WalletTab(),
+                    const AlertsTab(),
+                    const ProfileTab(),
+                  ],
+                ),
+
+                // Floating Light Mode Custom Curvature Bottom Navigation Bar (Customer-App parity)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: _buildCustomBottomNavigationBar(),
+                ),
               ],
             ),
-
-            // Floating Light Mode Custom Curvature Bottom Navigation Bar (Customer-App parity)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildCustomBottomNavigationBar(),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -290,6 +486,14 @@ class _HomeScreenState extends State<HomeScreen> {
         // App Header Sliver
         SliverToBoxAdapter(
           child: _buildTopHeader(),
+        ),
+
+        // Prominent Verification Status Banner Sliver
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 0),
+            child: _buildVerificationStatusBanner(),
+          ),
         ),
 
         // Quick Stats Strip
@@ -306,6 +510,14 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
             child: GestureDetector(
               onTap: () {
+                if (!VerificationService.instance.isApproved) {
+                  _showVerificationLockedModal(
+                    context,
+                    pageName: 'Quotation Requests',
+                  );
+                  return;
+                }
+
                 final job = JobModel(
                   id: 'JOB-1024',
                   serviceTitle: 'Emergency Pipe Leak Repair',

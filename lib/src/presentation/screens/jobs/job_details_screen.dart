@@ -13,11 +13,13 @@ import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart'
 class JobDetailsScreen extends StatefulWidget {
   final JobModel job;
   final ValueChanged<JobModel>? onJobUpdated;
+  final ValueChanged<JobModel>? onJobDeclined;
 
   const JobDetailsScreen({
     super.key,
     required this.job,
     this.onJobUpdated,
+    this.onJobDeclined,
   });
 
   @override
@@ -105,6 +107,303 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     DynamicIslandToast.showSuccess(
       context,
       successMessage,
+    );
+  }
+
+  void _openDeclineDialog() {
+    HapticFeedback.lightImpact();
+
+    String selectedReason = 'Distance is too far from my area';
+    final TextEditingController noteController = TextEditingController();
+
+    final List<String> reasons = [
+      'Distance is too far from my area',
+      'Fully booked / unavailable at requested time',
+      'Service requirements outside my expertise',
+      'Client budget / scope mismatch',
+      'Emergency job slot conflict',
+      'Other reason',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final isOther = selectedReason == 'Other reason';
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                  left: 22.w,
+                  right: 22.w,
+                  top: 14.h,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Handle bar
+                      Center(
+                        child: Container(
+                          width: 36.w,
+                          height: 4.h,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE2E4DE),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8.r),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFEE2E2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.cancel_outlined,
+                              color: const Color(0xFFDC2626),
+                              size: 22.r,
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Decline Job Request',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 17.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textHeadline,
+                                  ),
+                                ),
+                                SizedBox(height: 2.h),
+                                Text(
+                                  'Request #${_job.id} • ${_job.customerName}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.5.sp,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            icon: const Icon(Icons.close_rounded),
+                            color: AppColors.textMuted,
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 12.h),
+                      Text(
+                        'Please select a reason for declining this request. Letting clients know keeps your provider rating protected.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.5.sp,
+                          color: AppColors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                      SizedBox(height: 14.h),
+
+                      // Reasons list
+                      ...reasons.map((reason) {
+                        final isSelected = selectedReason == reason;
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setSheetState(() {
+                              selectedReason = reason;
+                            });
+                          },
+                          child: Container(
+                            margin: EdgeInsets.only(bottom: 8.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14.w,
+                              vertical: 11.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFFEF2F2)
+                                  : const Color(0xFFF9FAF6),
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFFF87171)
+                                    : const Color(0xFFE5E9DC),
+                                width: isSelected ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 18.r,
+                                  height: 18.r,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? const Color(0xFFDC2626)
+                                          : const Color(0xFFBAC095),
+                                      width: 2,
+                                    ),
+                                    color: isSelected
+                                        ? const Color(0xFFDC2626)
+                                        : Colors.transparent,
+                                  ),
+                                  child: isSelected
+                                      ? Center(
+                                          child: Container(
+                                            width: 6.r,
+                                            height: 6.r,
+                                            decoration: const BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                SizedBox(width: 10.w),
+                                Expanded(
+                                  child: Text(
+                                    reason,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13.sp,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: isSelected
+                                          ? const Color(0xFF991B1B)
+                                          : AppColors.textHeadline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+
+                      if (isOther) ...[
+                        SizedBox(height: 6.h),
+                        TextField(
+                          controller: noteController,
+                          maxLines: 2,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13.sp,
+                            color: AppColors.textHeadline,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Provide additional details (optional)...',
+                            hintStyle: GoogleFonts.plusJakartaSans(
+                              fontSize: 13.sp,
+                              color: AppColors.textMuted,
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF8F9F3),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE2E6D5),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFDC2626),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      SizedBox(height: 18.h),
+
+                      // Actions
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: Color(0xFFE2E6D5),
+                                ),
+                                padding: EdgeInsets.symmetric(vertical: 13.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14.r),
+                                ),
+                              ),
+                              onPressed: () => Navigator.pop(ctx),
+                              child: Text(
+                                'Keep Request',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13.5.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textHeadline,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10.w),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFDC2626),
+                                elevation: 0,
+                                padding: EdgeInsets.symmetric(vertical: 13.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14.r),
+                                ),
+                              ),
+                              onPressed: () {
+                                HapticFeedback.heavyImpact();
+                                Navigator.pop(ctx); // Close sheet
+                                Navigator.pop(context); // Exit JobDetailsScreen
+
+                                widget.onJobDeclined?.call(_job);
+
+                                DynamicIslandToast.showSuccess(
+                                  context,
+                                  'Job #${_job.id} declined.',
+                                );
+                              },
+                              child: Text(
+                                'Confirm Decline',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13.5.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12.h),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -2196,28 +2495,63 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     ],
                   ),
                   SizedBox(height: 12.h),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 40.h,
-                    child: ElevatedButton.icon(
-                      onPressed: _openQuotationDialog,
-                      icon: const Icon(Icons.send_rounded, size: 15),
-                      label: Text(
-                        'Send Quotation',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12.5.sp,
-                          fontWeight: FontWeight.w700,
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 4,
+                        child: SizedBox(
+                          height: 40.h,
+                          child: OutlinedButton.icon(
+                            onPressed: _openDeclineDialog,
+                            icon: const Icon(Icons.close_rounded,
+                                size: 15, color: Color(0xFFDC2626)),
+                            label: Text(
+                              'Decline',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.5.sp,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFDC2626),
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                  color: Color(0xFFFCA5A5), width: 1),
+                              backgroundColor: const Color(0xFFFEF2F2),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.r),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        flex: 6,
+                        child: SizedBox(
+                          height: 40.h,
+                          child: ElevatedButton.icon(
+                            onPressed: _openQuotationDialog,
+                            icon: const Icon(Icons.send_rounded, size: 15),
+                            label: Text(
+                              'Send Quotation',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.5.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -2886,23 +3220,61 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   Widget _buildContextualActionButton() {
     switch (_job.status) {
       case JobCategory.toQuote:
-        return ElevatedButton.icon(
-          onPressed: _openQuotationDialog,
-          icon: const Icon(Icons.send_rounded, size: 18),
-          label: Text(
-            'Submit Quotation',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w700,
+        return Row(
+          children: [
+            Expanded(
+              flex: 4,
+              child: SizedBox(
+                height: 52.h,
+                child: OutlinedButton.icon(
+                  onPressed: _openDeclineDialog,
+                  icon: const Icon(Icons.close_rounded,
+                      size: 18, color: Color(0xFFDC2626)),
+                  label: Text(
+                    'Decline',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFDC2626),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(
+                        color: Color(0xFFFCA5A5), width: 1.2),
+                    backgroundColor: const Color(0xFFFEF2F2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26.r),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.buttonBackground,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(26.r),
+            SizedBox(width: 10.w),
+            Expanded(
+              flex: 6,
+              child: SizedBox(
+                height: 52.h,
+                child: ElevatedButton.icon(
+                  onPressed: _openQuotationDialog,
+                  icon: const Icon(Icons.send_rounded, size: 18),
+                  label: Text(
+                    'Submit Quotation',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.buttonBackground,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(26.r),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         );
 
       case JobCategory.pendingApprove:
