@@ -133,6 +133,7 @@ class JobModel {
   double? extraAmount;
   String? extraReason;
   ExtraApprovalStatus extraStatus;
+  final String paymentMethod;
 
   JobModel({
     required this.id,
@@ -157,6 +158,7 @@ class JobModel {
     this.extraAmount,
     this.extraReason,
     this.extraStatus = ExtraApprovalStatus.none,
+    this.paymentMethod = 'Cash on Delivery',
   });
 
   double get totalEffectivePrice =>

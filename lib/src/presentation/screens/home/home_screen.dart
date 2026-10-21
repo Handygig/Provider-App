@@ -849,7 +849,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
-                        '\$180.00',
+                        'LKR 180.00',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 26.sp,
                           fontWeight: FontWeight.w800,
@@ -884,7 +884,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   HapticFeedback.lightImpact();
                   DynamicIslandToast.showSuccess(
                     context,
-                    'Payout initiated: \$180.00',
+                    'Payout initiated: LKR 180.00',
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -1009,7 +1009,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               Text(
-                '\$${(job['price'] as double).toStringAsFixed(2)}',
+                'LKR ${(job['price'] as double).toStringAsFixed(2)}',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w800,

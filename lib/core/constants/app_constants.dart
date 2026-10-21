@@ -8,4 +8,8 @@ class AppConstants {
   /// Default Camera Coordinates (Colombo, Sri Lanka)
   static const double defaultLatitude = 6.9034;
   static const double defaultLongitude = 79.8546;
+
+  /// System Currency
+  static const String currency = 'LKR';
+  static const String currencySymbol = 'LKR ';
 }

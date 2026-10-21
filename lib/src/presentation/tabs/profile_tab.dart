@@ -194,7 +194,7 @@ class ProfileTab extends StatelessWidget {
                         height: 30.h,
                         width: 1,
                         color: AppColors.borderUnselected),
-                    _buildStatCol('Total Earned', '\$4.8k'),
+                    _buildStatCol('Total Earned', 'LKR 4.8k'),
                   ],
                 ),
               ),

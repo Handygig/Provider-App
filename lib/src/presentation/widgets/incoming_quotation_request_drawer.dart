@@ -171,7 +171,7 @@ class _IncomingQuotationRequestDrawerState
 
     DynamicIslandToast.showSuccess(
       context,
-      'Quotation of \$${amount.toStringAsFixed(2)} sent! Moved to Pending Approval.',
+      'Quotation of LKR ${amount.toStringAsFixed(2)} sent! Moved to Pending Approval.',
     );
 
     // Option to view job details immediately
@@ -738,7 +738,7 @@ class _IncomingQuotationRequestDrawerState
                           ),
                         ),
                         Text(
-                          '${widget.job.serviceTitle} • \$${(widget.job.estimatedBudget ?? 80).toStringAsFixed(0)} Est.',
+                          '${widget.job.serviceTitle} • LKR ${(widget.job.estimatedBudget ?? 80).toStringAsFixed(0)} Est.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.sp,
                             color: AppColors.primary,
@@ -960,7 +960,7 @@ class _IncomingQuotationRequestDrawerState
                                 ),
                               ),
                               Text(
-                                '\$${(widget.job.estimatedBudget ?? 80.00).toStringAsFixed(2)} Est.',
+                                'LKR ${(widget.job.estimatedBudget ?? 80.00).toStringAsFixed(2)} Est.',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14.sp,
                                   fontWeight: FontWeight.w900,
@@ -1187,7 +1187,7 @@ class _IncomingQuotationRequestDrawerState
 
           // Price input
           Text(
-            'Your Quoted Price (\$)',
+            'Your Quoted Price (LKR)',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12.5.sp,
               fontWeight: FontWeight.w700,
@@ -1211,9 +1211,9 @@ class _IncomingQuotationRequestDrawerState
                 child: Center(
                   widthFactor: 0.0,
                   child: Text(
-                    '\$',
+                    'LKR ',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20.sp,
+                      fontSize: 16.sp,
                       fontWeight: FontWeight.w800,
                       color: AppColors.primary,
                     ),
@@ -1264,7 +1264,7 @@ class _IncomingQuotationRequestDrawerState
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      '\$$amt',
+                      'LKR $amt',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w700,

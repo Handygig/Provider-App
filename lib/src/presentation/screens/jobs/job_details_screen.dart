@@ -1,9 +1,13 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/domain/models/job_model.dart';
+import 'package:provider_app/src/presentation/screens/chat/chat_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 
 class JobDetailsScreen extends StatefulWidget {
@@ -23,10 +27,57 @@ class JobDetailsScreen extends StatefulWidget {
 class _JobDetailsScreenState extends State<JobDetailsScreen> {
   late JobModel _job;
 
+  // Mini Map Coordinates & State
+  static const LatLng _customerLocation = LatLng(6.9034, 79.8546);
+  static const LatLng _providerLocation = LatLng(6.9147, 79.8653);
+  GoogleMapController? _mapController;
+  final Set<Marker> _markers = {};
+  final Set<Polyline> _polylines = {};
+
   @override
   void initState() {
     super.initState();
     _job = widget.job;
+    _initMap();
+  }
+
+  void _initMap() {
+    _markers.add(
+      Marker(
+        markerId: const MarkerId('customer_location'),
+        position: _customerLocation,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        infoWindow: InfoWindow(
+          title: _job.customerName,
+          snippet: _job.address,
+        ),
+      ),
+    );
+    _markers.add(
+      Marker(
+        markerId: const MarkerId('provider_location'),
+        position: _providerLocation,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        infoWindow: const InfoWindow(
+          title: 'Your Location',
+          snippet: 'Current location',
+        ),
+      ),
+    );
+    _polylines.add(
+      const Polyline(
+        polylineId: PolylineId('route_preview'),
+        points: [_providerLocation, _customerLocation],
+        color: AppColors.primary,
+        width: 4,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 
   void _advanceStage(
@@ -126,8 +177,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     color: AppColors.textHeadline,
                   ),
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.attach_money_rounded,
-                        color: AppColors.primary),
+                    prefixIcon: Container(
+                      width: 50.w,
+                      alignment: Alignment.center,
+                      child: Text(
+                        'LKR',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13.5.sp,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
                     hintText: 'e.g. 85.00',
                     filled: true,
                     fillColor: AppColors.cardSelectedBg,
@@ -174,7 +235,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       widget.onJobUpdated?.call(_job);
                       DynamicIslandToast.showSuccess(
                         context,
-                        'Quote \$${val.toStringAsFixed(2)} sent! Auto-advanced to Pending Approval.',
+                        'Quote LKR ${val.toStringAsFixed(2)} sent! Auto-advanced to Pending Approval.',
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -309,7 +370,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                             ),
                           ),
                           Text(
-                            '\$${basePrice.toStringAsFixed(2)}',
+                            'LKR ${basePrice.toStringAsFixed(2)}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.w800,
@@ -321,7 +382,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     ),
                     SizedBox(height: 14.h),
                     Text(
-                      'Additional Extra Amount (\$)',
+                      'Additional Extra Amount (LKR)',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w700,
@@ -397,7 +458,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13.sp,
                                       fontWeight: FontWeight.w600)),
-                              Text('\$${newTotal.toStringAsFixed(2)}',
+                              Text('LKR ${newTotal.toStringAsFixed(2)}',
                                   style: GoogleFonts.plusJakartaSans(
                                       fontSize: 18.sp,
                                       fontWeight: FontWeight.w800,
@@ -449,7 +510,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                           widget.onJobUpdated?.call(_job);
                           DynamicIslandToast.showSuccess(
                             context,
-                            'Extra \$${extraVal.toStringAsFixed(2)} requested! Sent to customer for approval.',
+                            'Extra LKR ${extraVal.toStringAsFixed(2)} requested! Sent to customer for approval.',
                           );
                         },
                         icon: const Icon(Icons.send_rounded, size: 18),
@@ -491,7 +552,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     if (approved) {
       DynamicIslandToast.showSuccess(
         context,
-        'Customer approved extra \$${_job.extraAmount!.toStringAsFixed(2)}!',
+        'Customer approved extra LKR ${_job.extraAmount!.toStringAsFixed(2)}!',
       );
     } else {
       DynamicIslandToast.showError(
@@ -591,7 +652,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                         SizedBox(width: 8.w),
                         Expanded(
                           child: Text(
-                            'Notice: An extra quote of +\$${_job.extraAmount!.toStringAsFixed(2)} is still pending customer approval. If finalized now, only the approved base \$${_job.quotedAmount!.toStringAsFixed(2)} will be billed.',
+                            'Notice: An extra quote of +LKR ${_job.extraAmount!.toStringAsFixed(2)} is still pending customer approval. If finalized now, only the approved base LKR ${_job.quotedAmount!.toStringAsFixed(2)} will be billed.',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12.sp,
                               color: const Color(0xFF92400E),
@@ -628,7 +689,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                             ),
                           ),
                           Text(
-                            '\$${(_job.quotedAmount ?? _job.estimatedBudget ?? 0.0).toStringAsFixed(2)}',
+                            'LKR ${(_job.quotedAmount ?? _job.estimatedBudget ?? 0.0).toStringAsFixed(2)}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w700,
@@ -650,7 +711,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                               ),
                             ),
                             Text(
-                              '+\$${_job.extraAmount!.toStringAsFixed(2)}',
+                              '+LKR ${_job.extraAmount!.toStringAsFixed(2)}',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w700,
@@ -673,7 +734,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                             ),
                           ),
                           Text(
-                            '\$${_job.totalEffectivePrice.toStringAsFixed(2)}',
+                            'LKR ${_job.totalEffectivePrice.toStringAsFixed(2)}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 18.sp,
                               fontWeight: FontWeight.w800,
@@ -840,7 +901,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                         Text('Base Service Quote',
                             style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13.sp, color: AppColors.textMuted)),
-                        Text('\$${basePrice.toStringAsFixed(2)}',
+                        Text('LKR ${basePrice.toStringAsFixed(2)}',
                             style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13.sp, fontWeight: FontWeight.w700)),
                       ],
@@ -861,7 +922,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                             ),
                           ),
                           Text(
-                            '+\$${extraPrice.toStringAsFixed(2)}',
+                            '+LKR ${extraPrice.toStringAsFixed(2)}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13.sp,
                               fontWeight: FontWeight.w700,
@@ -878,7 +939,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                         Text('Total Amount Paid',
                             style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14.sp, fontWeight: FontWeight.w700)),
-                        Text('\$${totalPrice.toStringAsFixed(2)}',
+                        Text('LKR ${totalPrice.toStringAsFixed(2)}',
                             style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.w800,
@@ -955,6 +1016,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
                     // 4. Financials / Quotation Card
                     _buildFinancialsCard(),
+
+                    SizedBox(height: 18.h),
+
+                    // 5. Payment Method Card
+                    _buildPaymentMethodCard(),
 
                     SizedBox(height: 30.h),
                   ],
@@ -1365,7 +1431,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         iconData = Icons.hourglass_top_rounded;
         stageTitle = 'Stage 2: Awaiting Customer Approval';
         stageDesc =
-            'Quote of \$${price.toStringAsFixed(2)} was sent. Customer is reviewing. Once approved, the job automatically shifts to Ongoing.';
+            'Quote of LKR ${price.toStringAsFixed(2)} was sent. Customer is reviewing. Once approved, the job automatically shifts to Ongoing.';
         actionHint = 'Action: Client Approved • Start Job';
         break;
 
@@ -1377,7 +1443,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           iconData = Icons.hourglass_top_rounded;
           stageTitle = 'Stage 3: Ongoing • Extra Pending Approval';
           stageDesc =
-              'Extra quote of +\$${_job.extraAmount!.toStringAsFixed(2)} for "${_job.extraReason}" requested. Awaiting customer confirmation.';
+              'Extra quote of +LKR ${_job.extraAmount!.toStringAsFixed(2)} for "${_job.extraReason}" requested. Awaiting customer confirmation.';
           actionHint = 'Status: Waiting for customer to accept variation';
         } else if (_job.hasApprovedExtra) {
           bannerBg = const Color(0xFFF0FDF4);
@@ -1386,7 +1452,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           iconData = Icons.construction_rounded;
           stageTitle = 'Stage 3: Ongoing • Extra Approved ✓';
           stageDesc =
-              'Customer approved extra +\$${_job.extraAmount!.toStringAsFixed(2)}. New total payable is \$${_job.totalEffectivePrice.toStringAsFixed(2)}.';
+              'Customer approved extra +LKR ${_job.extraAmount!.toStringAsFixed(2)}. New total payable is LKR ${_job.totalEffectivePrice.toStringAsFixed(2)}.';
           actionHint = 'Action: Mark Job Finished & Collect';
         } else {
           bannerBg = const Color(0xFFEFF6FF);
@@ -1621,9 +1687,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   GestureDetector(
                     onTap: () {
                       HapticFeedback.lightImpact();
-                      DynamicIslandToast.showSuccess(
+                      Navigator.push(
                         context,
-                        'Opening chat with ${_job.customerName}',
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(job: _job),
+                        ),
                       );
                     },
                     child: Container(
@@ -1720,6 +1788,181 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
               ],
             ),
           ),
+
+          SizedBox(height: 14.h),
+
+          // ─── Interactive Mini Map Location Display ─────────────────────
+          _buildMiniMapSection(),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // MINI MAP SECTION TO DISPLAY SERVICE LOCATION
+  // ---------------------------------------------------------------------------
+  Widget _buildMiniMapSection() {
+    return Container(
+      height: 175.h,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: const Color(0xFFE2E6D5),
+          width: 1.2,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // Google Map canvas
+          GoogleMap(
+            initialCameraPosition: const CameraPosition(
+              target: _customerLocation,
+              zoom: 14.5,
+            ),
+            mapType: MapType.normal,
+            markers: _markers,
+            polylines: _polylines,
+            zoomControlsEnabled: false,
+            myLocationButtonEnabled: false,
+            mapToolbarEnabled: false,
+            compassEnabled: false,
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+              Factory<OneSequenceGestureRecognizer>(
+                () => EagerGestureRecognizer(),
+              ),
+            },
+            onMapCreated: (controller) {
+              _mapController = controller;
+            },
+          ),
+
+          // Top Info Pill
+          Positioned(
+            top: 10.h,
+            left: 10.w,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.94),
+                borderRadius: BorderRadius.circular(20.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.navigation_rounded,
+                    size: 13.r,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    '${_job.distance} away • ~8 mins',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textHeadline,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Recenter Button
+          Positioned(
+            top: 10.h,
+            right: 10.w,
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _mapController?.animateCamera(
+                  CameraUpdate.newCameraPosition(
+                    const CameraPosition(
+                      target: _customerLocation,
+                      zoom: 15.0,
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                width: 32.r,
+                height: 32.r,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.94),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.my_location_rounded,
+                  size: 16.r,
+                  color: AppColors.primaryDark,
+                ),
+              ),
+            ),
+          ),
+
+          // Bottom Action: Get Directions Button
+          Positioned(
+            bottom: 10.h,
+            right: 10.w,
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                DynamicIslandToast.showSuccess(
+                  context,
+                  'Opening navigation to ${_job.address}...',
+                );
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDark,
+                  borderRadius: BorderRadius.circular(20.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.directions_rounded,
+                      size: 15.r,
+                      color: Colors.white,
+                    ),
+                    SizedBox(width: 5.w),
+                    Text(
+                      'Get Directions',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1810,6 +2053,11 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     final hasQuote = _job.quotedAmount != null;
     final basePrice = _job.quotedAmount ?? _job.estimatedBudget ?? 0.0;
     final isOngoing = _job.status == JobCategory.ongoing;
+    final totalBilled = _job.hasApprovedExtra
+        ? _job.totalEffectivePrice
+        : (_job.hasPendingExtra ? _job.totalWithPendingExtra : basePrice);
+    final platformFee = totalBilled * 0.10;
+    final netPayout = totalBilled - platformFee;
 
     String actionLabel = '';
     VoidCallback? actionTap;
@@ -1892,85 +2140,194 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           ),
           SizedBox(height: 14.h),
 
-          // Base Price Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                hasQuote
-                    ? (isOngoing ? 'Approved Base Quote' : 'Quoted Price')
-                    : 'Client Estimated Budget',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13.5.sp,
-                  color: AppColors.textSecondary,
+          if (!hasQuote) ...[
+            // ─── Unquoted State: Prices Hidden Until Quotation is Sent ───────
+            Container(
+              padding: EdgeInsets.all(14.r),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAF6),
+                borderRadius: BorderRadius.circular(14.r),
+                border: Border.all(
+                  color: const Color(0xFFE8ECE1),
+                  width: 1,
                 ),
               ),
-              Text(
-                '\$${basePrice.toStringAsFixed(2)}',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: isOngoing && _job.extraAmount != null ? 17.sp : 22.sp,
-                  fontWeight: FontWeight.w800,
-                  color: hasQuote
-                      ? const Color(0xFF16A34A)
-                      : AppColors.textHeadline,
-                ),
-              ),
-            ],
-          ),
-
-          // Extra Amount Rows (for Ongoing or Finished with extras)
-          if (_job.extraAmount != null && _job.extraAmount! > 0) ...[
-            SizedBox(height: 8.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Additional Extra:',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.sp,
-                        color: AppColors.textSecondary,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.request_quote_outlined,
+                          size: 20.r,
+                          color: AppColors.primary,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 6.w),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                      decoration: BoxDecoration(
-                        color: _job.extraStatus == ExtraApprovalStatus.approved
-                            ? const Color(0xFFDCFCE7)
-                            : _job.extraStatus == ExtraApprovalStatus.rejected
-                                ? const Color(0xFFFEE2E2)
-                                : const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(6.r),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Quotation Required',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13.5.sp,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textHeadline,
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              'Price breakdown, 10% platform charges, and your net take-home payout will be calculated once you send a quotation.',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5.sp,
+                                color: AppColors.textMuted,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Text(
-                        _job.extraStatus == ExtraApprovalStatus.approved
-                            ? 'Approved'
-                            : _job.extraStatus == ExtraApprovalStatus.rejected
-                                ? 'Declined'
-                                : 'Pending Approval',
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40.h,
+                    child: ElevatedButton.icon(
+                      onPressed: _openQuotationDialog,
+                      icon: const Icon(Icons.send_rounded, size: 15),
+                      label: Text(
+                        'Send Quotation',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.sp,
+                          fontSize: 12.5.sp,
                           fontWeight: FontWeight.w700,
-                          color: _job.extraStatus.color,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
                         ),
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            // ─── Detailed Price List Including Platform Charges ──────────────
+            // 1. Quoted Base Price
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isOngoing ? 'Approved Base Service Fee' : 'Quoted Service Fee',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.sp,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 Text(
-                  '+\$${_job.extraAmount!.toStringAsFixed(2)}',
+                  'LKR ${basePrice.toStringAsFixed(2)}',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 15.sp,
-                    fontWeight: FontWeight.w800,
-                    color: _job.extraStatus.color,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textHeadline,
                   ),
                 ),
               ],
             ),
+
+            // 2. Extra Charges (if any)
+            if (_job.extraAmount != null && _job.extraAmount! > 0) ...[
+              SizedBox(height: 8.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Additional Extra Work:',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13.sp,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      SizedBox(width: 6.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 6.w, vertical: 2.h),
+                        decoration: BoxDecoration(
+                          color: _job.extraStatus == ExtraApprovalStatus.approved
+                              ? const Color(0xFFDCFCE7)
+                              : _job.extraStatus == ExtraApprovalStatus.rejected
+                                  ? const Color(0xFFFEE2E2)
+                                  : const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
+                        child: Text(
+                          _job.extraStatus == ExtraApprovalStatus.approved
+                              ? 'Approved'
+                              : _job.extraStatus == ExtraApprovalStatus.rejected
+                                  ? 'Declined'
+                                  : 'Pending Approval',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            color: _job.extraStatus.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '+LKR ${_job.extraAmount!.toStringAsFixed(2)}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.5.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _job.extraStatus.color,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            SizedBox(height: 8.h),
+
+            // 3. Gross Total Billed to Client
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Total Client Billed:',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textHeadline,
+                  ),
+                ),
+                Text(
+                  'LKR ${totalBilled.toStringAsFixed(2)}',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textHeadline,
+                  ),
+                ),
+              ],
+            ),
+
             Divider(height: 18.h, color: AppColors.borderUnselected),
+
+            // 4. Platform Charges Breakdown (10%)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1978,50 +2335,93 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _job.hasApprovedExtra
-                          ? 'Total Final Payable:'
-                          : 'Total (With Pending Extra):',
+                      'Platform Service Fee (10%)',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13.5.sp,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textHeadline,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFDC2626),
                       ),
                     ),
-                    if (_job.hasPendingExtra)
-                      Text(
-                        '*Extra requires customer approval',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.5.sp,
-                          fontStyle: FontStyle.italic,
-                          color: const Color(0xFFD97706),
-                        ),
+                    Text(
+                      'Handygig platform services & lead fee',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.5.sp,
+                        color: AppColors.textMuted,
                       ),
+                    ),
                   ],
                 ),
                 Text(
-                  '\$${(_job.hasApprovedExtra ? _job.totalEffectivePrice : _job.totalWithPendingExtra).toStringAsFixed(2)}',
+                  '-LKR ${platformFee.toStringAsFixed(2)}',
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 22.sp,
+                    fontSize: 14.5.sp,
                     fontWeight: FontWeight.w800,
-                    color: _job.hasApprovedExtra
-                        ? const Color(0xFF16A34A)
-                        : const Color(0xFFD97706),
+                    color: const Color(0xFFDC2626),
                   ),
                 ),
               ],
             ),
-          ],
 
-          if (_job.quoteNotes != null && _job.quoteNotes!.isNotEmpty) ...[
-            SizedBox(height: 10.h),
-            Text(
-              'Terms: ${_job.quoteNotes}',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.sp,
-                fontStyle: FontStyle.italic,
-                color: AppColors.textMuted,
+            SizedBox(height: 12.h),
+
+            // 5. Net Provider Earnings Card
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(14.r),
+                border: Border.all(
+                  color: const Color(0xFFBBF7D0),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Your Estimated Net Payout',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF15803D),
+                        ),
+                      ),
+                      SizedBox(height: 1.h),
+                      Text(
+                        'Take-home earnings after platform fee',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5.sp,
+                          color: const Color(0xFF166534),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'LKR ${netPayout.toStringAsFixed(2)}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 19.sp,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF16A34A),
+                    ),
+                  ),
+                ],
               ),
             ),
+
+            if (_job.quoteNotes != null && _job.quoteNotes!.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              Text(
+                'Terms: ${_job.quoteNotes}',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.sp,
+                  fontStyle: FontStyle.italic,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
           ],
 
           // -------------------------------------------------------------------
@@ -2071,7 +2471,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     ),
                     SizedBox(height: 6.h),
                     Text(
-                      'Requested: +\$${_job.extraAmount!.toStringAsFixed(2)} for "${_job.extraReason}"',
+                      'Requested: +LKR ${_job.extraAmount!.toStringAsFixed(2)} for "${_job.extraReason}"',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w600,
@@ -2161,7 +2561,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Customer Approved Extra Charge (+\$${_job.extraAmount!.toStringAsFixed(2)})',
+                            'Customer Approved Extra Charge (+LKR ${_job.extraAmount!.toStringAsFixed(2)})',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12.5.sp,
                               fontWeight: FontWeight.w800,
@@ -2200,7 +2600,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Text(
-                        'Customer declined the +\$${_job.extraAmount!.toStringAsFixed(2)} extra. Original quote remains active.',
+                        'Customer declined the +LKR ${_job.extraAmount!.toStringAsFixed(2)} extra. Original quote remains active.',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11.5.sp,
                           color: const Color(0xFF991B1B),
@@ -2277,7 +2677,179 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // 5. BOTTOM ACTION BAR
+  // 5. PAYMENT METHOD CARD
+  // ---------------------------------------------------------------------------
+  Widget _buildPaymentMethodCard() {
+    final isCash = _job.paymentMethod.toLowerCase().contains('cash');
+    final isSettled = _job.status == JobCategory.finished;
+    final totalPayable = _job.totalEffectivePrice;
+
+    return Container(
+      padding: EdgeInsets.all(18.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22.r),
+        border: Border.all(color: AppColors.borderUnselected, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Icon(
+                      isCash ? Icons.payments_rounded : Icons.credit_card_rounded,
+                      color: AppColors.primary,
+                      size: 18.r,
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Text(
+                    'Payment Method',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textHeadline,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: isSettled
+                      ? const Color(0xFFDCFCE7)
+                      : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isSettled
+                          ? Icons.check_circle_rounded
+                          : Icons.pending_rounded,
+                      size: 12.r,
+                      color: isSettled
+                          ? const Color(0xFF16A34A)
+                          : const Color(0xFFD97706),
+                    ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      isSettled ? 'Settled' : 'Pay on Completion',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w700,
+                        color: isSettled
+                            ? const Color(0xFF16A34A)
+                            : const Color(0xFFD97706),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 14.h),
+          Container(
+            padding: EdgeInsets.all(12.r),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9F5),
+              borderRadius: BorderRadius.circular(14.r),
+              border: Border.all(color: const Color(0xFFE8ECE1)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42.r,
+                  height: 42.r,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE2E6D5)),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      isCash
+                          ? Icons.local_atm_rounded
+                          : Icons.credit_card_rounded,
+                      color: AppColors.primaryDark,
+                      size: 20.r,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _job.paymentMethod,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textHeadline,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        isCash
+                            ? 'Collect LKR ${totalPayable.toStringAsFixed(2)} directly from customer upon finishing.'
+                            : 'Online card payment held securely in escrow until job completion.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5.sp,
+                          color: AppColors.textMuted,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              Icon(
+                Icons.verified_user_rounded,
+                size: 14.r,
+                color: const Color(0xFF16A34A),
+              ),
+              SizedBox(width: 6.w),
+              Expanded(
+                child: Text(
+                  'Handygig Payment Protection: Verified provider payout guaranteed.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 6. BOTTOM ACTION BAR
   // ---------------------------------------------------------------------------
   Widget _buildBottomActionBar() {
     return Container(

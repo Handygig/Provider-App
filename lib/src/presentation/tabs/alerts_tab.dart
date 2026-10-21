@@ -38,7 +38,7 @@ class _AlertsTabState extends State<AlertsTab> {
         'customer': 'Sarah Jenkins',
         'service': 'Emergency Pipe Leak Repair',
         'address': 'No 18, Galle Road, Kollupitiya, Colombo 03',
-        'amount': '\$45.00 Est.',
+        'amount': 'LKR 45.00 Est.',
         'actionType': 'job',
       },
       {
@@ -46,7 +46,7 @@ class _AlertsTabState extends State<AlertsTab> {
         'title': 'Quotation Accepted by Client!',
         'category': 'Quotations',
         'body':
-            'David Miller accepted your quote of \$135.00 for Commercial AC Service. The job has officially transitioned to "Ongoing". Please prepare tools and equipment for on-site visit.',
+            'David Miller accepted your quote of LKR 135.00 for Commercial AC Service. The job has officially transitioned to "Ongoing". Please prepare tools and equipment for on-site visit.',
         'time': '1 hour ago',
         'fullTime': 'Today • 04:15 PM',
         'isUnread': true,
@@ -56,7 +56,7 @@ class _AlertsTabState extends State<AlertsTab> {
         'customer': 'David Miller',
         'service': 'Commercial AC Compressor Service',
         'address': 'Level 4, Orion City Park, Colombo 09',
-        'amount': '\$135.00 Approved',
+        'amount': 'LKR 135.00 Approved',
         'actionType': 'job',
       },
       {
@@ -64,14 +64,14 @@ class _AlertsTabState extends State<AlertsTab> {
         'title': 'Weekly Payout Deposited',
         'category': 'Finance & Wallet',
         'body':
-            'Your weekly provider earnings of \$680.00 have been successfully transferred to your linked Commercial Bank account (•••• 4291). Funds should reflect within 1-2 hours.',
+            'Your weekly provider earnings of LKR 680.00 have been successfully transferred to your linked Commercial Bank account (•••• 4291). Funds should reflect within 1-2 hours.',
         'time': 'Yesterday',
         'fullTime': 'Yesterday • 10:15 AM',
         'isUnread': false,
         'icon': Icons.account_balance_wallet_rounded,
         'color': AppColors.primaryDark,
         'referenceId': 'TXN-8812',
-        'amount': '\$680.00 Payout',
+        'amount': 'LKR 680.00 Payout',
         'bank': 'Commercial Bank •••• 4291',
         'actionType': 'wallet',
       },

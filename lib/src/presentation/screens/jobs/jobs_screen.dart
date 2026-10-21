@@ -59,6 +59,7 @@ class _JobsScreenState extends State<JobsScreen>
         description:
             'Need inspection and quotation for leaking main pipeline and installation of 2 shower mixer units.',
         estimatedBudget: 80.00,
+        paymentMethod: 'Cash on Delivery',
         status: JobCategory.toQuote,
       ),
       JobModel(
@@ -74,6 +75,7 @@ class _JobsScreenState extends State<JobsScreen>
         description:
             'Inverter AC unit outdoor fan vibrating violently and low cooling efficiency. Need cost estimate for fix.',
         estimatedBudget: 65.00,
+        paymentMethod: 'Credit / Debit Card',
         status: JobCategory.toQuote,
       ),
       JobModel(
@@ -89,6 +91,7 @@ class _JobsScreenState extends State<JobsScreen>
         description:
             'Circuit breaker trips repeatedly whenever multiple appliances are turned on. Quote needed for diagnostic & rewire.',
         estimatedBudget: 110.00,
+        paymentMethod: 'Cash on Delivery',
         status: JobCategory.toQuote,
       ),
 
@@ -107,6 +110,7 @@ class _JobsScreenState extends State<JobsScreen>
             'Deep chemical clearing with replacement of rubber trap and sink connector joints.',
         quotedAmount: 55.00,
         quoteNotes: 'Includes material costs and 30-day service warranty.',
+        paymentMethod: 'Cash on Delivery',
         status: JobCategory.pendingApprove,
       ),
       JobModel(
@@ -123,6 +127,7 @@ class _JobsScreenState extends State<JobsScreen>
             'Chemical coil wash, blower cleaning, electrical contact check, and R32 refrigerant gas charge.',
         quotedAmount: 135.00,
         quoteNotes: 'Quoted for 2 technicians, scheduled for Saturday.',
+        paymentMethod: 'Credit / Debit Card',
         status: JobCategory.pendingApprove,
       ),
 
@@ -625,28 +630,37 @@ class _JobsScreenState extends State<JobsScreen>
   // ---------------------------------------------------------------------------
   // REDESIGNED USER-FRIENDLY JOB CARD WITH SERVICE STATUS MAP
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // REDESIGNED SIMPLE & CLEAN SERVICE CARD WITH SEE DETAILS BUTTON
+  // ---------------------------------------------------------------------------
   Widget _buildSummarizedJobCard(JobModel job) {
     final int currentStep = job.status.index; // 0: To Quote, 1: Pending, 2: Ongoing, 3: Finished
-    final String priceText;
-    final String priceLabel;
+    final bool hasQuoted = job.quotedAmount != null;
+    final String? priceText;
+    final String? priceLabel;
 
-    switch (job.status) {
-      case JobCategory.toQuote:
-        priceLabel = 'Client Est. Budget';
-        priceText = '\$${(job.estimatedBudget ?? 0.0).toStringAsFixed(2)}';
-        break;
-      case JobCategory.pendingApprove:
-        priceLabel = 'Sent Quote';
-        priceText = '\$${(job.quotedAmount ?? job.estimatedBudget ?? 0.0).toStringAsFixed(2)}';
-        break;
-      case JobCategory.ongoing:
-        priceLabel = 'Total Job Value';
-        priceText = '\$${job.totalEffectivePrice.toStringAsFixed(2)}';
-        break;
-      case JobCategory.finished:
-        priceLabel = 'Total Settled';
-        priceText = '\$${job.totalEffectivePrice.toStringAsFixed(2)}';
-        break;
+    if (hasQuoted) {
+      switch (job.status) {
+        case JobCategory.toQuote:
+          priceLabel = 'Sent Quote';
+          priceText = 'LKR ${job.quotedAmount!.toStringAsFixed(2)}';
+          break;
+        case JobCategory.pendingApprove:
+          priceLabel = 'Sent Quote';
+          priceText = 'LKR ${job.quotedAmount!.toStringAsFixed(2)}';
+          break;
+        case JobCategory.ongoing:
+          priceLabel = 'Total Job Value';
+          priceText = 'LKR ${job.totalEffectivePrice.toStringAsFixed(2)}';
+          break;
+        case JobCategory.finished:
+          priceLabel = 'Total Settled';
+          priceText = 'LKR ${job.totalEffectivePrice.toStringAsFixed(2)}';
+          break;
+      }
+    } else {
+      priceLabel = null;
+      priceText = null;
     }
 
     final initials = job.customerName
@@ -656,34 +670,24 @@ class _JobsScreenState extends State<JobsScreen>
         .take(2)
         .join();
 
+    final isCash = job.paymentMethod.toLowerCase().contains('cash');
+
     return GestureDetector(
-      onTap: () {
-        if (job.status == JobCategory.toQuote) {
-          IncomingQuotationRequestDrawer.show(
-            context,
-            job: job,
-            onQuoteSent: (updated) {
-              setState(() {});
-            },
-          );
-        } else {
-          _openJobDetails(job);
-        }
-      },
+      onTap: () => _openJobDetails(job),
       child: Container(
-        margin: EdgeInsets.only(bottom: 16.h),
+        margin: EdgeInsets.only(bottom: 14.h),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20.r),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: const Color(0xFFE5E9DC),
             width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -691,7 +695,7 @@ class _JobsScreenState extends State<JobsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ─── Header: Category Tag & Status Badge ─────────────────────
+            // ─── 1. Header: Category Tag & Status Badge ──────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -708,14 +712,14 @@ class _JobsScreenState extends State<JobsScreen>
                         children: [
                           Icon(
                             job.categoryIcon,
-                            size: 14.r,
+                            size: 13.r,
                             color: job.categoryColor,
                           ),
-                          SizedBox(width: 5.w),
+                          SizedBox(width: 4.w),
                           Text(
                             job.category,
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.sp,
+                              fontSize: 11.5.sp,
                               fontWeight: FontWeight.w700,
                               color: job.categoryColor,
                             ),
@@ -745,7 +749,7 @@ class _JobsScreenState extends State<JobsScreen>
 
                 // Status Badge
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
                     color: job.status.backgroundColor,
                     borderRadius: BorderRadius.circular(10.r),
@@ -765,7 +769,7 @@ class _JobsScreenState extends State<JobsScreen>
                       Text(
                         job.status.badgeText,
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.5.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w800,
                           color: job.status.color,
                         ),
@@ -778,33 +782,31 @@ class _JobsScreenState extends State<JobsScreen>
 
             SizedBox(height: 10.h),
 
-            // ─── Service Title & Appointment Schedule ────────────────────
+            // ─── 2. Service Title & Schedule ─────────────────────────────
             Text(
               job.serviceTitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 15.5.sp,
+                fontSize: 15.sp,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textHeadline,
                 height: 1.25,
               ),
             ),
-            SizedBox(height: 6.h),
-
-            // Appointment Pill
+            SizedBox(height: 5.h),
             Row(
               children: [
                 Icon(
-                  Icons.schedule_rounded,
-                  size: 14.r,
+                  Icons.access_time_rounded,
+                  size: 13.r,
                   color: AppColors.primary,
                 ),
                 SizedBox(width: 5.w),
                 Text(
                   job.requestedTime,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12.sp,
+                    fontSize: 11.5.sp,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
                   ),
@@ -812,14 +814,14 @@ class _JobsScreenState extends State<JobsScreen>
               ],
             ),
 
-            SizedBox(height: 12.h),
+            SizedBox(height: 10.h),
 
-            // ─── Customer & Location Details Box ─────────────────────────
+            // ─── 3. Unified Customer, Location & Payment Info ────────────
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8F9F3),
-                borderRadius: BorderRadius.circular(14.r),
+                borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(
                   color: const Color(0xFFE9ECE0),
                   width: 1,
@@ -827,12 +829,12 @@ class _JobsScreenState extends State<JobsScreen>
               ),
               child: Column(
                 children: [
+                  // Customer & Distance Row
                   Row(
                     children: [
-                      // Avatar
                       Container(
-                        width: 28.r,
-                        height: 28.r,
+                        width: 24.r,
+                        height: 24.r,
                         decoration: const BoxDecoration(
                           color: AppColors.primary,
                           shape: BoxShape.circle,
@@ -841,7 +843,7 @@ class _JobsScreenState extends State<JobsScreen>
                         child: Text(
                           initials.isNotEmpty ? initials : 'C',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.sp,
+                            fontSize: 10.sp,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                           ),
@@ -852,47 +854,51 @@ class _JobsScreenState extends State<JobsScreen>
                         child: Text(
                           job.customerName,
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13.sp,
+                            fontSize: 12.5.sp,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textHeadline,
                           ),
                         ),
                       ),
-                      // Rating pill
-                      Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.star_rounded,
-                              size: 13.r,
-                              color: const Color(0xFFD97706),
+                      // Rating
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.star_rounded,
+                            size: 13.r,
+                            color: const Color(0xFFD97706),
+                          ),
+                          SizedBox(width: 2.w),
+                          Text(
+                            job.customerRating.toStringAsFixed(1),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFFB45309),
                             ),
-                            SizedBox(width: 3.w),
-                            Text(
-                              job.customerRating.toStringAsFixed(1),
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11.5.sp,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFFB45309),
-                              ),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(width: 6.w),
+                      Text(
+                        '• ${job.distance}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8.h),
+
+                  SizedBox(height: 6.h),
+
+                  // Location
                   Row(
                     children: [
                       Icon(
-                        Icons.location_on_rounded,
-                        size: 14.r,
+                        Icons.location_on_outlined,
+                        size: 13.r,
                         color: AppColors.primary,
                       ),
                       SizedBox(width: 4.w),
@@ -908,22 +914,36 @@ class _JobsScreenState extends State<JobsScreen>
                           ),
                         ),
                       ),
-                      SizedBox(width: 6.w),
-                      Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6.r),
-                          border: Border.all(color: const Color(0xFFE2E6D5)),
+                    ],
+                  ),
+
+                  SizedBox(height: 5.h),
+
+                  // Payment Method
+                  Row(
+                    children: [
+                      Icon(
+                        isCash
+                            ? Icons.payments_outlined
+                            : Icons.credit_card_outlined,
+                        size: 13.r,
+                        color: AppColors.primary,
+                      ),
+                      SizedBox(width: 4.w),
+                      Text(
+                        'Payment: ',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textMuted,
                         ),
-                        child: Text(
-                          job.distance,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryDark,
-                          ),
+                      ),
+                      Text(
+                        job.paymentMethod,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textHeadline,
                         ),
                       ),
                     ],
@@ -932,103 +952,100 @@ class _JobsScreenState extends State<JobsScreen>
               ),
             ),
 
-            SizedBox(height: 14.h),
+            SizedBox(height: 10.h),
 
-            // ─── SERVICE STATUS MAP (Roadmap / Pipeline) ──────────────────
+            // ─── 4. Sleek Progress Stepper Bar ───────────────────────────
             _buildCardServiceStatusMap(job, currentStep),
 
-            SizedBox(height: 14.h),
+            SizedBox(height: 10.h),
 
-            // ─── Divider ─────────────────────────────────────────────────
+            // ─── 5. Divider ──────────────────────────────────────────────
             const Divider(height: 1, color: Color(0xFFEFF2E5)),
 
-            SizedBox(height: 12.h),
+            SizedBox(height: 10.h),
 
-            // ─── Footer: Pricing & Action Button ─────────────────────────
+            // ─── 6. Footer: Pricing & Action Buttons ─────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      priceLabel,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Row(
+                // Price display (hidden until provider has quoted)
+                if (hasQuoted && priceLabel != null && priceText != null)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          priceText,
+                          priceLabel,
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w900,
-                            color: job.quotedAmount != null
-                                ? const Color(0xFF16A34A)
-                                : AppColors.textHeadline,
+                            fontSize: 10.5.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
                           ),
                         ),
-                        if (job.hasPendingExtra) ...[
-                          SizedBox(width: 6.w),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 5.w, vertical: 2.h),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
-                              borderRadius: BorderRadius.circular(6.r),
-                            ),
-                            child: Text(
-                              '+\$${job.extraAmount!.toStringAsFixed(0)} ⏳',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 9.5.sp,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFFD97706),
+                        SizedBox(height: 1.h),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                priceText,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15.5.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF16A34A),
+                                ),
                               ),
                             ),
-                          ),
-                        ] else if (job.hasApprovedExtra) ...[
-                          SizedBox(width: 6.w),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 5.w, vertical: 2.h),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDCFCE7),
-                              borderRadius: BorderRadius.circular(6.r),
-                            ),
-                            child: Text(
-                              '+\$${job.extraAmount!.toStringAsFixed(0)} Extra ✓',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 9.5.sp,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF16A34A),
+                            if (job.hasPendingExtra) ...[
+                              SizedBox(width: 4.w),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 4.w, vertical: 1.5.h),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(4.r),
+                                ),
+                                child: Text(
+                                  '+LKR ${job.extraAmount!.toStringAsFixed(0)} ⏳',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 9.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFD97706),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
+                            ] else if (job.hasApprovedExtra) ...[
+                              SizedBox(width: 4.w),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 4.w, vertical: 1.5.h),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(4.r),
+                                ),
+                                child: Text(
+                                  '+LKR ${job.extraAmount!.toStringAsFixed(0)} ✓',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 9.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF16A34A),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  )
+                else
+                  const Spacer(),
 
-                // Action Pill Button
+                SizedBox(width: 8.w),
+
+                // "See Details" Button
                 GestureDetector(
-                  onTap: () {
-                    if (job.status == JobCategory.toQuote) {
-                      IncomingQuotationRequestDrawer.show(
-                        context,
-                        job: job,
-                        onQuoteSent: (updated) {
-                          setState(() {});
-                        },
-                      );
-                    } else {
-                      _openJobDetails(job);
-                    }
-                  },
+                  onTap: () => _openJobDetails(job),
                   child: Container(
                     padding:
                         EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
@@ -1037,16 +1054,17 @@ class _JobsScreenState extends State<JobsScreen>
                       borderRadius: BorderRadius.circular(12.r),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.25),
+                          color: AppColors.primary.withValues(alpha: 0.2),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _getCardActionLabel(job.status),
+                          'See Details',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w800,
@@ -1072,210 +1090,61 @@ class _JobsScreenState extends State<JobsScreen>
   }
 
   // ---------------------------------------------------------------------------
-  // SERVICE STATUS MAP (CARD-LEVEL PIPELINE STEPPER)
+  // SLEEK MINIMAL PROGRESS INDICATOR
   // ---------------------------------------------------------------------------
   Widget _buildCardServiceStatusMap(JobModel job, int currentStep) {
-    final stages = [
-      {'label': 'Quote'},
-      {'label': 'Approval'},
-      {'label': 'Ongoing'},
-      {'label': 'Finished'},
-    ];
+    const stageNames = ['Quote', 'Approval', 'Ongoing', 'Finished'];
+    final activeStageName = stageNames[currentStep.clamp(0, 3)];
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBFBF9),
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(
-          color: const Color(0xFFECEFE4),
-          width: 1,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Progress',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10.5.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMuted,
+              ),
+            ),
+            Text(
+              'Stage ${currentStep + 1} of 4 • $activeStageName',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10.5.sp,
+                fontWeight: FontWeight.w700,
+                color: job.status.color,
+              ),
+            ),
+          ],
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.timeline_rounded,
-                    size: 13.r,
-                    color: AppColors.primary,
-                  ),
-                  SizedBox(width: 5.w),
-                  Text(
-                    'SERVICE STATUS MAP',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+        SizedBox(height: 5.h),
+        Row(
+          children: List.generate(4, (index) {
+            final isPassed = index < currentStep;
+            final isCurrent = index == currentStep;
+            final isFilled = isPassed || isCurrent;
+
+            return Expanded(
+              child: Container(
+                height: 4.h,
+                margin: EdgeInsets.only(right: index < 3 ? 4.w : 0),
                 decoration: BoxDecoration(
-                  color: job.status.backgroundColor,
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-                child: Text(
-                  'Stage ${currentStep + 1} of 4 • ${job.status.badgeText}',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 9.5.sp,
-                    fontWeight: FontWeight.w800,
-                    color: job.status.color,
-                  ),
+                  color: isFilled
+                      ? (isCurrent ? job.status.color : const Color(0xFF16A34A))
+                      : const Color(0xFFE5E7EB),
+                  borderRadius: BorderRadius.circular(3.r),
                 ),
               ),
-            ],
-          ),
-          SizedBox(height: 10.h),
-
-          // 4-Node Pipeline Tracker
-          Row(
-            children: List.generate(4, (index) {
-              final isPassed = index < currentStep;
-              final isCurrent = index == currentStep;
-
-              return Expanded(
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: 24.r,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Left connector
-                          if (index > 0)
-                            Positioned(
-                              left: 0,
-                              right: 12.r,
-                              top: 10.5.r,
-                              child: Container(
-                                height: 2.5.h,
-                                color: (isPassed || isCurrent)
-                                    ? const Color(0xFF16A34A)
-                                    : const Color(0xFFE5E7EB),
-                              ),
-                            ),
-
-                          // Right connector
-                          if (index < 3)
-                            Positioned(
-                              left: 12.r,
-                              right: 0,
-                              top: 10.5.r,
-                              child: Container(
-                                height: 2.5.h,
-                                color: isPassed
-                                    ? const Color(0xFF16A34A)
-                                    : const Color(0xFFE5E7EB),
-                              ),
-                            ),
-
-                          // Node Circle
-                          Container(
-                            width: isCurrent ? 24.r : 20.r,
-                            height: isCurrent ? 24.r : 20.r,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isPassed
-                                  ? const Color(0xFF16A34A)
-                                  : (isCurrent
-                                      ? job.status.color
-                                      : const Color(0xFFF3F4F6)),
-                              border: Border.all(
-                                color: isCurrent
-                                    ? Colors.white
-                                    : (isPassed
-                                        ? const Color(0xFF16A34A)
-                                        : const Color(0xFFD1D5DB)),
-                                width: isCurrent ? 2 : 1.2,
-                              ),
-                              boxShadow: isCurrent
-                                  ? [
-                                      BoxShadow(
-                                        color: job.status.color
-                                            .withValues(alpha: 0.35),
-                                        blurRadius: 6,
-                                        spreadRadius: 1,
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Center(
-                              child: isPassed
-                                  ? Icon(
-                                      Icons.check_rounded,
-                                      size: 12.r,
-                                      color: Colors.white,
-                                    )
-                                  : (isCurrent
-                                      ? Container(
-                                          width: 6.r,
-                                          height: 6.r,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        )
-                                      : Text(
-                                          '${index + 1}',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 9.sp,
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF9CA3AF),
-                                          ),
-                                        )),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 5.h),
-                    Text(
-                      stages[index]['label'] as String,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 9.5.sp,
-                        fontWeight: isCurrent
-                            ? FontWeight.w800
-                            : (isPassed ? FontWeight.w700 : FontWeight.w500),
-                        color: isCurrent
-                            ? job.status.color
-                            : (isPassed
-                                ? const Color(0xFF16A34A)
-                                : const Color(0xFF9CA3AF)),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
+            );
+          }),
+        ),
+      ],
     );
   }
 
-  String _getCardActionLabel(JobCategory status) {
-    switch (status) {
-      case JobCategory.toQuote:
-        return 'Send Quote';
-      case JobCategory.pendingApprove:
-        return 'Check Status';
-      case JobCategory.ongoing:
-        return 'Manage Job';
-      case JobCategory.finished:
-        return 'View Receipt';
-    }
-  }
 
   Widget _buildEmptyState(JobCategory category) {
     String title;

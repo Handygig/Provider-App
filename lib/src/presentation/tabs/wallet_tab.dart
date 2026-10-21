@@ -205,7 +205,7 @@ class _WalletTabState extends State<WalletTab> {
 
     DynamicIslandToast.showSuccess(
       context,
-      'Platform fee of \$${settledAmount.toStringAsFixed(2)} settled to Admin!',
+      'Platform fee of LKR ${settledAmount.toStringAsFixed(2)} settled to Admin!',
     );
   }
 
@@ -306,7 +306,7 @@ class _WalletTabState extends State<WalletTab> {
                         ),
                         SizedBox(height: 4.h),
                         Text(
-                          '\$${_totalCashCollected.toStringAsFixed(2)}',
+                          'LKR ${_totalCashCollected.toStringAsFixed(2)}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 17.sp,
                             fontWeight: FontWeight.w800,
@@ -332,7 +332,7 @@ class _WalletTabState extends State<WalletTab> {
                         ),
                         SizedBox(height: 4.h),
                         Text(
-                          '\$${_platformFeesDue.toStringAsFixed(2)}',
+                          'LKR ${_platformFeesDue.toStringAsFixed(2)}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 17.sp,
                             fontWeight: FontWeight.w800,
@@ -413,7 +413,7 @@ class _WalletTabState extends State<WalletTab> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '+\$${(job['cashCollected'] as double).toStringAsFixed(2)}',
+                            '+LKR ${(job['cashCollected'] as double).toStringAsFixed(2)}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13.sp,
                               fontWeight: FontWeight.w800,
@@ -422,7 +422,7 @@ class _WalletTabState extends State<WalletTab> {
                           ),
                           SizedBox(height: 2.h),
                           Text(
-                            'Fee: \$${(job['feeDue'] as double).toStringAsFixed(2)}',
+                            'Fee: LKR ${(job['feeDue'] as double).toStringAsFixed(2)}',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10.5.sp,
                               fontWeight: FontWeight.w700,
@@ -456,7 +456,7 @@ class _WalletTabState extends State<WalletTab> {
                       _settlePlatformFees();
                     },
                     child: Text(
-                      'Settle All Fees (\$${_platformFeesDue.toStringAsFixed(2)})',
+                      'Settle All Fees (LKR ${_platformFeesDue.toStringAsFixed(2)})',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14.5.sp,
                         fontWeight: FontWeight.w800,
@@ -531,7 +531,7 @@ class _WalletTabState extends State<WalletTab> {
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: Text(
-                          'Max \$${_availableBalance.toStringAsFixed(2)}',
+                          'Max LKR ${_availableBalance.toStringAsFixed(2)}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w700,
@@ -614,7 +614,7 @@ class _WalletTabState extends State<WalletTab> {
 
                   // Amount input
                   Text(
-                    'Enter Amount (\$)',
+                    'Enter Amount (LKR)',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w700,
@@ -637,9 +637,9 @@ class _WalletTabState extends State<WalletTab> {
                         child: Center(
                           widthFactor: 0.0,
                           child: Text(
-                            '\$',
+                            'LKR ',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 22.sp,
+                              fontSize: 18.sp,
                               fontWeight: FontWeight.w800,
                               color: AppColors.primary,
                             ),
@@ -701,7 +701,7 @@ class _WalletTabState extends State<WalletTab> {
                             ),
                             alignment: Alignment.center,
                             child: Text(
-                              '\$$amt',
+                              'LKR $amt',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12.5.sp,
                                 fontWeight: FontWeight.w700,
@@ -807,7 +807,7 @@ class _WalletTabState extends State<WalletTab> {
 
                         DynamicIslandToast.showSuccess(
                           context,
-                          'Withdrawal of \$${val.toStringAsFixed(2)} initiated!',
+                          'Withdrawal of LKR ${val.toStringAsFixed(2)} initiated!',
                         );
                       },
                       child: Text(
@@ -918,7 +918,7 @@ class _WalletTabState extends State<WalletTab> {
                 child: Column(
                   children: [
                     Text(
-                      '${tx['amount'] >= 0 ? '+' : ''}\$${(tx['amount'] as double).abs().toStringAsFixed(2)}',
+                      '${tx['amount'] >= 0 ? '+' : ''}LKR ${(tx['amount'] as double).abs().toStringAsFixed(2)}',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 28.sp,
                         fontWeight: FontWeight.w900,
@@ -955,18 +955,18 @@ class _WalletTabState extends State<WalletTab> {
               if (tx['baseAmount'] != null && !isPayout && !isFee)
                 _buildReceiptRow(
                   'Base Quote',
-                  '\$${(tx['baseAmount'] as double).toStringAsFixed(2)}',
+                  'LKR ${(tx['baseAmount'] as double).toStringAsFixed(2)}',
                 ),
               if ((tx['extraAmount'] ?? 0.0) > 0)
                 _buildReceiptRow(
                   'Extra Approved',
-                  '+\$${(tx['extraAmount'] as double).toStringAsFixed(2)}',
+                  '+LKR ${(tx['extraAmount'] as double).toStringAsFixed(2)}',
                   highlightGreen: true,
                 ),
               if ((tx['platformFee'] ?? 0.0) > 0)
                 _buildReceiptRow(
                   'Admin Platform Fee (10%)',
-                  '-\$${(tx['platformFee'] as double).toStringAsFixed(2)}',
+                  '-LKR ${(tx['platformFee'] as double).toStringAsFixed(2)}',
                   highlightOrange: true,
                 ),
 
@@ -984,7 +984,7 @@ class _WalletTabState extends State<WalletTab> {
                     ),
                   ),
                   Text(
-                    '\$${(tx['netAmount'] as double).abs().toStringAsFixed(2)}',
+                    'LKR ${(tx['netAmount'] as double).abs().toStringAsFixed(2)}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w900,
@@ -1197,7 +1197,7 @@ class _WalletTabState extends State<WalletTab> {
                   ),
                   SizedBox(height: 2.h),
                   Text(
-                    '\$${_platformFeesDue.toStringAsFixed(2)}',
+                    'LKR ${_platformFeesDue.toStringAsFixed(2)}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 26.sp,
                       fontWeight: FontWeight.w900,
@@ -1267,7 +1267,7 @@ class _WalletTabState extends State<WalletTab> {
                 Expanded(
                   child: Text(
                     hasDues
-                        ? 'Customer paid \$${_totalCashCollected.toStringAsFixed(2)} in cash directly to you. Remit the 10% platform fee to Admin or settle from your wallet balance.'
+                        ? 'Customer paid LKR ${_totalCashCollected.toStringAsFixed(2)} in cash directly to you. Remit the 10% platform fee to Admin or settle from your wallet balance.'
                         : 'No pending platform fees. Any fees from future cash orders will display here automatically.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11.5.sp,
@@ -1301,7 +1301,7 @@ class _WalletTabState extends State<WalletTab> {
                     onPressed: _settlePlatformFees,
                     icon: const Icon(Icons.check_circle_rounded, size: 16),
                     label: Text(
-                      'Pay Fee (\$${_platformFeesDue.toStringAsFixed(2)})',
+                      'Pay Fee (LKR ${_platformFeesDue.toStringAsFixed(2)})',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w800,
@@ -1463,7 +1463,7 @@ class _WalletTabState extends State<WalletTab> {
                   SizedBox(height: 12.h),
 
                   Text(
-                    '\$${_availableBalance.toStringAsFixed(2)}',
+                    'LKR ${_availableBalance.toStringAsFixed(2)}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 34.sp,
                       fontWeight: FontWeight.w900,
@@ -1541,7 +1541,7 @@ class _WalletTabState extends State<WalletTab> {
                         ),
                         SizedBox(height: 6.h),
                         Text(
-                          '+\$${_thisMonthEarnings.toStringAsFixed(2)}',
+                          '+LKR ${_thisMonthEarnings.toStringAsFixed(2)}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.w800,
@@ -1584,7 +1584,7 @@ class _WalletTabState extends State<WalletTab> {
                         ),
                         SizedBox(height: 6.h),
                         Text(
-                          '\$${_pendingClearance.toStringAsFixed(2)}',
+                          'LKR ${_pendingClearance.toStringAsFixed(2)}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.w800,
@@ -1784,7 +1784,7 @@ class _WalletTabState extends State<WalletTab> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              '${tx['amount'] >= 0 ? '+' : ''}\$${(tx['amount'] as double).abs().toStringAsFixed(2)}',
+                              '${tx['amount'] >= 0 ? '+' : ''}LKR ${(tx['amount'] as double).abs().toStringAsFixed(2)}',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w800,
