@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/cupertino.dart';
@@ -17,6 +19,7 @@ import 'package:provider_app/src/presentation/tabs/wallet_tab.dart';
 import 'package:provider_app/src/data/services/verification_service.dart';
 import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
+import 'package:provider_app/src/presentation/widgets/incoming_quotation_request_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -44,12 +47,20 @@ class _HomeScreenState extends State<HomeScreen>
   double _headerMeasuredHeight = 295.0;
   final GlobalKey _headerKey = GlobalKey();
 
+  // Custom Map Pin Bitmaps & Avatar Image Cache
+  final Map<String, BitmapDescriptor> _customPinCache = {};
+  BitmapDescriptor? _providerPinBitmap;
+  final Map<String, ui.Image> _avatarImageCache = {};
+
   final List<Map<String, dynamic>> _projectsToStart = [
     {
       'id': 'JOB-1024',
       'serviceTitle': 'Emergency Pipe Leak Repair',
       'category': 'Plumbing',
       'customerName': 'Sarah Jenkins',
+      'initials': 'SJ',
+      'avatarUrl':
+          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&auto=format&fit=crop&q=80',
       'customerPhone': '+94 77 982 1450',
       'customerRating': 4.9,
       'address': 'No 18, Galle Road, Kollupitiya, Colombo 03',
@@ -67,6 +78,9 @@ class _HomeScreenState extends State<HomeScreen>
       'serviceTitle': 'Split AC Compressor Gas Leak',
       'category': 'AC Repair',
       'customerName': 'David Miller',
+      'initials': 'DM',
+      'avatarUrl':
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&auto=format&fit=crop&q=80',
       'customerPhone': '+94 71 432 8900',
       'customerRating': 4.8,
       'address': '12/4 Ward Place, Colombo 07',
@@ -84,6 +98,9 @@ class _HomeScreenState extends State<HomeScreen>
       'serviceTitle': 'Main Switchboard Breaker Trip Fix',
       'category': 'Electrical',
       'customerName': 'Priya Sharma',
+      'initials': 'PS',
+      'avatarUrl':
+          'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
       'customerPhone': '+94 76 890 1234',
       'customerRating': 5.0,
       'address': 'Duplication Road, Bambalapitiya, Colombo 04',
@@ -101,6 +118,9 @@ class _HomeScreenState extends State<HomeScreen>
       'serviceTitle': 'Water Booster Pump Motor Servicing',
       'category': 'Plumbing',
       'customerName': 'Dr. Mohan Lal',
+      'initials': 'ML',
+      'avatarUrl':
+          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&auto=format&fit=crop&q=80',
       'customerPhone': '+94 77 123 4567',
       'customerRating': 5.0,
       'address': 'Rosmead Place, Colombo 07',
@@ -172,7 +192,10 @@ class _HomeScreenState extends State<HomeScreen>
     },
   ];
 
+  bool _isIncomingDrawerOpen = false;
+
   void _simulateIncomingJobRequest() {
+    if (_isIncomingDrawerOpen) return;
     HapticFeedback.heavyImpact();
     final template =
         _simulationTemplates[_simulatedRequestIndex % _simulationTemplates.length];
@@ -180,41 +203,78 @@ class _HomeScreenState extends State<HomeScreen>
 
     final newId = 'JOB-${1000 + DateTime.now().millisecondsSinceEpoch % 9000}';
     final offset = (_simulatedRequestIndex % 5) * 0.003;
-    final newProject = {
-      'id': newId,
-      'serviceTitle': template['service'] as String,
-      'category': template['category'] as String,
-      'customerName': template['customer'] as String,
-      'customerPhone': '+94 77 982 1450',
-      'customerRating': (template['rating'] as num).toDouble(),
-      'address': template['location'] as String,
-      'distance': template['distance'] as String,
-      'requestedTime': template['time'] as String,
-      'description': template['description'] as String,
-      'price': (template['price'] as num).toDouble(),
-      'lat': 6.9100 + offset,
-      'lng': 79.8600 + offset,
-      'urgencyBadge': 'New Request',
-    };
+    final isInstant = template['urgency'] == 'Immediate' ||
+        (template['time'] as String).toLowerCase().contains('now') ||
+        (template['urgency'] as String).toLowerCase().contains('urgent');
 
-    setState(() {
-      _projectsToStart.insert(0, newProject);
-      _selectedProjectIndex = 0;
-    });
+    final newJob = JobModel(
+      id: newId,
+      serviceTitle: template['service'] as String,
+      category: template['category'] as String,
+      customerName: template['customer'] as String,
+      customerPhone: '+94 77 982 1450',
+      customerRating: (template['rating'] as num).toDouble(),
+      customerReviewsCount: 28,
+      address: template['location'] as String,
+      distance: template['distance'] as String,
+      requestedTime: template['time'] as String,
+      description: template['description'] as String,
+      estimatedBudget: (template['price'] as num).toDouble(),
+      status: JobCategory.toQuote,
+      orderType: isInstant ? OrderType.instant : OrderType.scheduled,
+      scheduledDate: DateTime.now().add(const Duration(days: 1)),
+      scheduledTimeSlot: '04:30 PM - 06:00 PM',
+      latitude: 6.9034 + offset,
+      longitude: 79.8546 + offset,
+    );
+
+    _isIncomingDrawerOpen = true;
 
     DynamicIslandToast.showSuccess(
       context,
-      '⚡ New project on map: ${template['service']}',
+      'New Incoming Request: ${newJob.serviceTitle}',
     );
 
-    if (_projectPageController.hasClients) {
-      _projectPageController.animateToPage(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-    _panToProject(0);
+    // Pop up full interactive map drawer to display order
+    IncomingQuotationRequestDrawer.show(
+      context,
+      job: newJob,
+      onQuoteSent: (updatedJob) {
+        // When quotation is sent, customer approves and it moves to To Start projects on the map
+        final approvedProject = {
+          'id': updatedJob.id,
+          'serviceTitle': updatedJob.serviceTitle,
+          'category': updatedJob.category,
+          'customerName': updatedJob.customerName,
+          'customerPhone': updatedJob.customerPhone,
+          'customerRating': updatedJob.customerRating,
+          'address': updatedJob.address,
+          'distance': updatedJob.distance,
+          'requestedTime': updatedJob.requestedTime,
+          'description': updatedJob.description,
+          'price': updatedJob.quotedAmount ?? updatedJob.estimatedBudget ?? 80.0,
+          'lat': updatedJob.effectiveLatitude,
+          'lng': updatedJob.effectiveLongitude,
+          'urgencyBadge': updatedJob.isInstantOrder ? 'Instant' : 'Scheduled',
+        };
+
+        setState(() {
+          _projectsToStart.insert(0, approvedProject);
+          _selectedProjectIndex = 0;
+        });
+
+        if (_projectPageController.hasClients) {
+          _projectPageController.animateToPage(
+            0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+        _panToProject(0);
+      },
+    ).then((_) {
+      _isIncomingDrawerOpen = false;
+    });
   }
 
   @override
@@ -232,6 +292,7 @@ class _HomeScreenState extends State<HomeScreen>
       curve: Curves.easeOutCubic,
       reverseCurve: Curves.easeInCubic,
     );
+    _loadCustomMarkers();
   }
 
   @override
@@ -489,14 +550,14 @@ class _HomeScreenState extends State<HomeScreen>
   void _panToProject(int index) {
     if (index >= 0 && index < _projectsToStart.length) {
       final project = _projectsToStart[index];
+      // Offset latitude slightly south so the pin is centered above the bottom card
+      final targetLat = (project['lat'] as double) - 0.0038;
+      final targetLng = project['lng'] as double;
       _mapController?.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
-            target: LatLng(
-              project['lat'] as double,
-              project['lng'] as double,
-            ),
-            zoom: 14.5,
+            target: LatLng(targetLat, targetLng),
+            zoom: 14.8,
           ),
         ),
       );
@@ -504,6 +565,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _onProjectSelected(int index) {
+    HapticFeedback.lightImpact();
     setState(() {
       _selectedProjectIndex = index;
     });
@@ -511,13 +573,14 @@ class _HomeScreenState extends State<HomeScreen>
       _projectPageController.animateToPage(
         index,
         duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
+        curve: Curves.easeOutCubic,
       );
     }
     _panToProject(index);
   }
 
   void _recenterToCurrentProject() {
+    HapticFeedback.lightImpact();
     _panToProject(_selectedProjectIndex);
   }
 
@@ -550,7 +613,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     DynamicIslandToast.showSuccess(
       context,
-      '🚀 Starting project: ${project['serviceTitle']}',
+      'Starting project: ${project['serviceTitle']}',
     );
 
     Navigator.push(
@@ -1565,41 +1628,474 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Future<void> _loadCustomMarkers() async {
+    // 1. Generate provider AP beacon pin
+    try {
+      _providerPinBitmap = await _createProviderLocationPin();
+      if (mounted) setState(() {});
+    } catch (_) {}
+
+    // 2. Pre-generate custom customer pins with initials for immediate display
+    for (int i = 0; i < _projectsToStart.length; i++) {
+      final p = _projectsToStart[i];
+      final id = p['id'] as String;
+      try {
+        _customPinCache['${id}_selected'] = await _createModernCustomerPin(
+          project: p,
+          isSelected: true,
+          avatarImage: _avatarImageCache[id],
+        );
+        _customPinCache['${id}_unselected'] = await _createModernCustomerPin(
+          project: p,
+          isSelected: false,
+          avatarImage: _avatarImageCache[id],
+        );
+      } catch (_) {}
+    }
+    if (mounted) setState(() {});
+
+    // 3. Asynchronously load profile photos and re-render sharp photo pins
+    for (int i = 0; i < _projectsToStart.length; i++) {
+      final p = _projectsToStart[i];
+      final id = p['id'] as String;
+      final avatarUrl = p['avatarUrl'] as String?;
+      if (avatarUrl != null &&
+          avatarUrl.isNotEmpty &&
+          !_avatarImageCache.containsKey(id)) {
+        try {
+          final img =
+              await _loadUiImage(avatarUrl).timeout(const Duration(seconds: 4));
+          _avatarImageCache[id] = img;
+          _customPinCache['${id}_selected'] = await _createModernCustomerPin(
+            project: p,
+            isSelected: true,
+            avatarImage: img,
+          );
+          _customPinCache['${id}_unselected'] = await _createModernCustomerPin(
+            project: p,
+            isSelected: false,
+            avatarImage: img,
+          );
+          if (mounted) setState(() {});
+        } catch (_) {}
+      }
+    }
+  }
+
+  Future<ui.Image> _loadUiImage(String url) async {
+    final completer = Completer<ui.Image>();
+    final stream = NetworkImage(url).resolve(ImageConfiguration.empty);
+    late ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (ImageInfo info, bool _) {
+        completer.complete(info.image);
+        stream.removeListener(listener);
+      },
+      onError: (dynamic error, StackTrace? stack) {
+        if (!completer.isCompleted) {
+          completer.completeError(error);
+        }
+        stream.removeListener(listener);
+      },
+    );
+    stream.addListener(listener);
+    return completer.future;
+  }
+
+  Future<BitmapDescriptor> _createModernCustomerPin({
+    required Map<String, dynamic> project,
+    required bool isSelected,
+    ui.Image? avatarImage,
+  }) async {
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(pictureRecorder);
+
+    // Compact, balanced dimensions (no visual clutter/overlap)
+    final double width = isSelected ? 84.0 : 72.0;
+    final double height = isSelected ? 100.0 : 86.0;
+    final double cx = width / 2;
+
+    final customerName = (project['customerName'] as String?) ?? 'Customer';
+    final initials = (project['initials'] as String?) ??
+        (customerName.isNotEmpty
+            ? customerName
+                .split(' ')
+                .map((e) => e.isNotEmpty ? e[0] : '')
+                .take(2)
+                .join()
+            : 'C');
+    final category = (project['category'] as String?) ?? 'General';
+    final price = (project['price'] as num?)?.toDouble() ?? 0.0;
+
+    final double pinRadius = isSelected ? 26.0 : 22.0;
+    final double circleY = isSelected ? 42.0 : 36.0;
+    final double pointerTipY = isSelected ? 88.0 : 76.0;
+
+    // 1. Soft Shadow under pointer tip
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: isSelected ? 0.35 : 0.22)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.5);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx, pointerTipY + 2.5),
+        width: isSelected ? 22.0 : 16.0,
+        height: isSelected ? 7.0 : 5.5,
+      ),
+      shadowPaint,
+    );
+
+    // 2. Selection Halo / Glow if selected
+    if (isSelected) {
+      final glowPaint = Paint()
+        ..color = const Color(0xFFD4DE95).withValues(alpha: 0.5)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      canvas.drawCircle(Offset(cx, circleY), pinRadius + 5, glowPaint);
+    }
+
+    // 3. Modern Teardrop Pin Shape
+    final pinPath = Path();
+    pinPath.moveTo(cx, pointerTipY);
+    pinPath.cubicTo(
+      cx + 7,
+      pointerTipY - 12,
+      cx + pinRadius,
+      circleY + (pinRadius * 0.75),
+      cx + pinRadius,
+      circleY,
+    );
+    pinPath.arcToPoint(
+      Offset(cx - pinRadius, circleY),
+      radius: Radius.circular(pinRadius),
+    );
+    pinPath.cubicTo(
+      cx - pinRadius,
+      circleY + (pinRadius * 0.75),
+      cx - 7,
+      pointerTipY - 12,
+      cx,
+      pointerTipY,
+    );
+    pinPath.close();
+
+    // Pin Body Fill
+    final bodyPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = isSelected ? const Color(0xFF1B2E17) : const Color(0xFF23361E);
+    canvas.drawPath(pinPath, bodyPaint);
+
+    // Pin Outer Border (Thick vibrant lime when selected, crisp white when unselected)
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = isSelected ? 3.0 : 2.2
+      ..color = isSelected ? const Color(0xFFD4DE95) : Colors.white;
+    canvas.drawPath(pinPath, borderPaint);
+
+    // 4. Circular Customer Avatar inside Pin Head
+    final double avatarRadius = pinRadius - (isSelected ? 4.5 : 3.5);
+    final Rect avatarRect =
+        Rect.fromCircle(center: Offset(cx, circleY), radius: avatarRadius);
+
+    if (avatarImage != null) {
+      // Draw Real Profile Photo
+      canvas.save();
+      canvas.clipPath(Path()..addOval(avatarRect));
+      paintImage(
+        canvas: canvas,
+        rect: avatarRect,
+        image: avatarImage,
+        fit: BoxFit.cover,
+      );
+      canvas.restore();
+    } else {
+      // Draw Gradient Avatar with Initials
+      final avatarBgPaint = Paint()
+        ..shader = ui.Gradient.linear(
+          Offset(cx - avatarRadius, circleY - avatarRadius),
+          Offset(cx + avatarRadius, circleY + avatarRadius),
+          _getAvatarGradientColors(customerName),
+        );
+      canvas.drawCircle(Offset(cx, circleY), avatarRadius, avatarBgPaint);
+
+      // Draw Initials
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: initials,
+          style: TextStyle(
+            fontSize: isSelected ? 14.0 : 12.0,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(
+          cx - (textPainter.width / 2),
+          circleY - (textPainter.height / 2),
+        ),
+      );
+    }
+
+    // Inner White Ring around Avatar
+    final innerBorderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = Colors.white.withValues(alpha: 0.85);
+    canvas.drawCircle(Offset(cx, circleY), avatarRadius, innerBorderPaint);
+
+    // 5. Category Accent Badge at Bottom-Right of Avatar
+    final double badgeX = cx + (avatarRadius * 0.72);
+    final double badgeY = circleY + (avatarRadius * 0.72);
+    final double badgeR = isSelected ? 6.5 : 5.2;
+
+    final catBadgeBg = Paint()
+      ..color = _getCategoryBadgeColor(category)
+      ..style = PaintingStyle.fill;
+    final catBadgeBorder = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(Offset(badgeX, badgeY), badgeR, catBadgeBg);
+    canvas.drawCircle(Offset(badgeX, badgeY), badgeR, catBadgeBorder);
+
+    // 6. Snug Price Pill (Compact and directly seated on top rim)
+    final pillWidth = isSelected ? 68.0 : 56.0;
+    final pillHeight = isSelected ? 17.0 : 14.5;
+    final pillY = isSelected ? 11.0 : 9.5;
+    final pillRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(cx, pillY),
+        width: pillWidth,
+        height: pillHeight,
+      ),
+      Radius.circular(pillHeight / 2),
+    );
+
+    // Pill Shadow
+    final pillShadow = Paint()
+      ..color = Colors.black.withValues(alpha: 0.18)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
+    canvas.drawRRect(pillRect.shift(const Offset(0, 1.5)), pillShadow);
+
+    // Pill Background
+    final pillPaint = Paint()
+      ..color = isSelected ? const Color(0xFFD4DE95) : Colors.white;
+    canvas.drawRRect(pillRect, pillPaint);
+
+    // Pill Border
+    final pillBorder = Paint()
+      ..color = isSelected
+          ? const Color(0xFF1B2E17).withValues(alpha: 0.2)
+          : const Color(0xFFD4DE95).withValues(alpha: 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    canvas.drawRRect(pillRect, pillBorder);
+
+    // Pill Text (LKR 65)
+    final priceTextPainter = TextPainter(
+      text: TextSpan(
+        text: 'LKR ${price.toStringAsFixed(0)}',
+        style: TextStyle(
+          fontSize: isSelected ? 8.5 : 7.5,
+          fontWeight: FontWeight.w800,
+          color: isSelected ? const Color(0xFF1E331B) : const Color(0xFF1B2A18),
+          fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    priceTextPainter.layout();
+    priceTextPainter.paint(
+      canvas,
+      Offset(
+        cx - (priceTextPainter.width / 2),
+        pillY - (priceTextPainter.height / 2),
+      ),
+    );
+
+    // Generate Bitmap
+    final picture = pictureRecorder.endRecording();
+    final img = await picture.toImage(width.toInt(), height.toInt());
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    final uint8List = byteData!.buffer.asUint8List();
+
+    return BitmapDescriptor.bytes(uint8List);
+  }
+
+  Future<BitmapDescriptor> _createProviderLocationPin() async {
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(pictureRecorder);
+
+    const double size = 64.0;
+    const double center = size / 2;
+
+    // 1. Soft Shadow
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.2)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawCircle(const Offset(center, center + 3), 19, shadowPaint);
+
+    // 2. Outer Pulsing Beacon Ring
+    final haloPaint = Paint()
+      ..color = const Color(0xFFD4DE95).withValues(alpha: 0.3)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(center, center), 26, haloPaint);
+
+    final ringPaint = Paint()
+      ..color = const Color(0xFFD4DE95).withValues(alpha: 0.65)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(const Offset(center, center), 23, ringPaint);
+
+    // 3. Inner Provider Avatar (Dark Green with "AP")
+    final corePaint = Paint()
+      ..color = const Color(0xFF1B2E17)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(center, center), 16, corePaint);
+
+    final coreBorder = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(const Offset(center, center), 16, coreBorder);
+
+    // Text "AP"
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: 'AP',
+        style: TextStyle(
+          fontSize: 10.0,
+          fontWeight: FontWeight.w900,
+          color: const Color(0xFFD4DE95),
+          fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        center - (textPainter.width / 2),
+        center - (textPainter.height / 2),
+      ),
+    );
+
+    // Online Green Dot
+    final dotBg = Paint()..color = const Color(0xFF22C55E);
+    final dotBorder = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(const Offset(center + 11, center - 11), 4.0, dotBg);
+    canvas.drawCircle(const Offset(center + 11, center - 11), 4.0, dotBorder);
+
+    final picture = pictureRecorder.endRecording();
+    final img = await picture.toImage(size.toInt(), size.toInt());
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    final uint8List = byteData!.buffer.asUint8List();
+
+    return BitmapDescriptor.bytes(uint8List);
+  }
+
+  List<Color> _getAvatarGradientColors(String name) {
+    if (name.contains('Sarah')) {
+      return const [Color(0xFF0284C7), Color(0xFF38BDF8)];
+    } else if (name.contains('David')) {
+      return const [Color(0xFF0D9488), Color(0xFF2DD4BF)];
+    } else if (name.contains('Priya')) {
+      return const [Color(0xFFD97706), Color(0xFFFBBF24)];
+    } else {
+      return const [Color(0xFF6366F1), Color(0xFF818CF8)];
+    }
+  }
+
+  Color _getCategoryBadgeColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'plumbing':
+        return const Color(0xFF0284C7);
+      case 'ac repair':
+      case 'hvac':
+        return const Color(0xFF16A34A);
+      case 'electrical':
+        return const Color(0xFFD97706);
+      default:
+        return const Color(0xFF16A34A);
+    }
+  }
+
+  Widget _buildMiniInitialsBadge(Map<String, dynamic> project) {
+    final name = (project['customerName'] as String?) ?? 'Customer';
+    final initials = (project['initials'] as String?) ??
+        (name.isNotEmpty ? name[0] : 'C');
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: _getAvatarGradientColors(name),
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 9.sp,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
   Set<Marker> _buildMapMarkers() {
     final markers = <Marker>{};
     final baseLat = WorkingHoursCoverageService.instance.baseLatitude;
     final baseLng = WorkingHoursCoverageService.instance.baseLongitude;
 
-    // Provider Location Marker
+    // Provider Location Marker (Custom AP Pulse Beacon)
     markers.add(
       Marker(
         markerId: const MarkerId('provider_location_marker'),
         position: LatLng(baseLat, baseLng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+        anchor: const Offset(0.5, 0.5),
+        icon: _providerPinBitmap ??
+            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
         infoWindow: const InfoWindow(
           title: 'Your Location',
-          snippet: 'Alex Perera (Ready)',
+          snippet: 'Alex Perera • Online & Ready',
         ),
       ),
     );
 
-    // Projects to Start Markers
+    // Projects to Start Markers (Modern Customer Avatar Pins)
     for (int i = 0; i < _projectsToStart.length; i++) {
       final p = _projectsToStart[i];
       final isSelected = i == _selectedProjectIndex;
+      final id = p['id'] as String;
+
+      final cacheKey = '${id}_${isSelected ? 'selected' : 'unselected'}';
+      final customIcon = _customPinCache[cacheKey];
+
       markers.add(
         Marker(
-          markerId: MarkerId(p['id'] as String),
+          markerId: MarkerId(id),
           position: LatLng(p['lat'] as double, p['lng'] as double),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            isSelected
-                ? BitmapDescriptor.hueGreen
-                : BitmapDescriptor.hueOrange,
-          ),
+          anchor: const Offset(0.5, 0.88),
+          zIndexInt: isSelected ? 10 : 1,
+          icon: customIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(
+                isSelected
+                    ? BitmapDescriptor.hueGreen
+                    : BitmapDescriptor.hueOrange,
+              ),
           infoWindow: InfoWindow(
-            title: p['serviceTitle'] as String,
+            title: '${p['customerName']} • ${p['serviceTitle']}',
             snippet:
-                '${p['customerName']} • LKR ${(p['price'] as double).toStringAsFixed(2)}',
+                '${p['category']} • LKR ${(p['price'] as double).toStringAsFixed(2)}',
           ),
           onTap: () => _onProjectSelected(i),
         ),
@@ -1731,6 +2227,23 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
               SizedBox(width: 6.w),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10.r),
+                child: SizedBox(
+                  width: 18.r,
+                  height: 18.r,
+                  child: (project['avatarUrl'] != null &&
+                          (project['avatarUrl'] as String).isNotEmpty)
+                      ? Image.network(
+                          project['avatarUrl'] as String,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildMiniInitialsBadge(project),
+                        )
+                      : _buildMiniInitialsBadge(project),
+                ),
+              ),
+              SizedBox(width: 4.w),
               Text(
                 '${project['customerName']} (${project['customerRating']}★)',
                 style: GoogleFonts.plusJakartaSans(

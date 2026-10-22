@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -506,6 +505,14 @@ class _JobsScreenState extends State<JobsScreen>
       description: template['desc'] as String,
       estimatedBudget: (template['budget'] as num).toDouble(),
       status: JobCategory.toQuote,
+      orderType: (template['time'] as String).toLowerCase().contains('now') ||
+              (template['time'] as String).toLowerCase().contains('immediate')
+          ? OrderType.instant
+          : OrderType.scheduled,
+      scheduledDate: DateTime.now().add(const Duration(days: 1)),
+      scheduledTimeSlot: '04:30 PM - 06:00 PM',
+      latitude: 6.9034 + (_simulatedRequestIndex % 5) * 0.003,
+      longitude: 79.8546 + (_simulatedRequestIndex % 5) * 0.003,
     );
 
     setState(() {
@@ -516,7 +523,7 @@ class _JobsScreenState extends State<JobsScreen>
 
     DynamicIslandToast.showSuccess(
       context,
-      '⚡ Simulated request: ${simulatedJob.customerName}',
+      'Simulated request: ${simulatedJob.customerName}',
     );
 
     IncomingQuotationRequestDrawer.show(
@@ -1681,18 +1688,60 @@ class _JobsScreenState extends State<JobsScreen>
             SizedBox(height: 5.h),
             Row(
               children: [
-                Icon(
-                  Icons.access_time_rounded,
-                  size: 13.r,
-                  color: AppColors.primary,
+                Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.5.h),
+                  decoration: BoxDecoration(
+                    color: job.isInstantOrder
+                        ? const Color(0xFFFFF7ED)
+                        : const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(6.r),
+                    border: Border.all(
+                      color: job.isInstantOrder
+                          ? const Color(0xFFFED7AA)
+                          : const Color(0xFFBFDBFE),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        job.isInstantOrder
+                            ? Icons.flash_on_rounded
+                            : Icons.calendar_today_rounded,
+                        size: 11.r,
+                        color: job.isInstantOrder
+                            ? const Color(0xFFEA580C)
+                            : const Color(0xFF2563EB),
+                      ),
+                      SizedBox(width: 4.w),
+                      Text(
+                        job.isInstantOrder ? 'Instant' : 'Scheduled',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w800,
+                          color: job.isInstantOrder
+                              ? const Color(0xFFEA580C)
+                              : const Color(0xFF2563EB),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                SizedBox(width: 5.w),
-                Text(
-                  job.requestedTime,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                SizedBox(width: 7.w),
+                Expanded(
+                  child: Text(
+                    job.isInstantOrder
+                        ? job.requestedTime
+                        : '${job.formattedScheduledDate} • ${job.effectiveTimeSlot}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],
@@ -1983,7 +2032,7 @@ class _JobsScreenState extends State<JobsScreen>
                       });
                       DynamicIslandToast.showSuccess(
                         context,
-                        '🚀 Job started! Moved to Ongoing.',
+                        'Job started! Moved to Ongoing.',
                       );
                     },
                     child: Container(

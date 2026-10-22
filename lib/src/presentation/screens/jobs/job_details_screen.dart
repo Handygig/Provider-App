@@ -1303,7 +1303,12 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
 
                     SizedBox(height: 18.h),
 
-                    // 2. Customer & Address Details Card
+                    // 2. Scheduled Date & Time or Instant Order Card
+                    _buildScheduleAndOrderTypeCard(),
+
+                    SizedBox(height: 18.h),
+
+                    // 3. Customer & Address Details Card
                     _buildCustomerCard(),
 
                     SizedBox(height: 18.h),
@@ -1866,7 +1871,425 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // 2. CUSTOMER & ADDRESS DETAILS CARD
+  // 2. SCHEDULED DATE & TIME OR INSTANT ORDER SECTION
+  // ---------------------------------------------------------------------------
+  Widget _buildScheduleAndOrderTypeCard() {
+    final isInstant = _job.isInstantOrder;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22.r),
+        border: Border.all(
+          color: isInstant
+              ? const Color(0xFFFDBA74).withValues(alpha: 0.8)
+              : const Color(0xFFBFDBFE).withValues(alpha: 0.8),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isInstant
+                    ? const Color(0xFFEA580C)
+                    : const Color(0xFF2563EB))
+                .withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Accent Header Banner
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: isInstant
+                  ? const Color(0xFFFFF7ED)
+                  : const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(21.r),
+                topRight: Radius.circular(21.r),
+              ),
+              border: Border(
+                bottom: BorderSide(
+                  color: isInstant
+                      ? const Color(0xFFFED7AA)
+                      : const Color(0xFFDBEAFE),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(6.r),
+                  decoration: BoxDecoration(
+                    color: isInstant
+                        ? const Color(0xFFEA580C).withValues(alpha: 0.14)
+                        : const Color(0xFF2563EB).withValues(alpha: 0.14),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isInstant
+                        ? Icons.bolt_rounded
+                        : Icons.calendar_month_rounded,
+                    size: 16.r,
+                    color: isInstant
+                        ? const Color(0xFFC2410C)
+                        : const Color(0xFF1D4ED8),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isInstant ? 'INSTANT ORDER' : 'SCHEDULED BOOKING',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                          color: isInstant
+                              ? const Color(0xFFC2410C)
+                              : const Color(0xFF1D4ED8),
+                        ),
+                      ),
+                      Text(
+                        isInstant
+                            ? 'Immediate service requested by customer'
+                            : 'Future date & time appointment confirmed',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.5.sp,
+                          fontWeight: FontWeight.w500,
+                          color: isInstant
+                              ? const Color(0xFF9A3412)
+                              : const Color(0xFF1E40AF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(
+                      color: isInstant
+                          ? const Color(0xFFFED7AA)
+                          : const Color(0xFFBFDBFE),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isInstant
+                            ? Icons.flash_on_rounded
+                            : Icons.check_circle_rounded,
+                        size: 11.r,
+                        color: isInstant
+                            ? const Color(0xFFEA580C)
+                            : const Color(0xFF2563EB),
+                      ),
+                      SizedBox(width: 3.w),
+                      Text(
+                        isInstant ? 'ASAP' : 'Booked',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w800,
+                          color: isInstant
+                              ? const Color(0xFFEA580C)
+                              : const Color(0xFF2563EB),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Main Content Body
+          Padding(
+            padding: EdgeInsets.all(16.r),
+            child: isInstant
+                ? _buildInstantOrderDetails()
+                : _buildScheduledOrderDetails(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduledOrderDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left: Calendar Date Tile
+            Expanded(
+              flex: 5,
+              child: Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.event_available_rounded,
+                            size: 14.r, color: const Color(0xFF2563EB)),
+                        SizedBox(width: 5.w),
+                        Text(
+                          'Scheduled Date',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 6.h),
+                    Text(
+                      _job.formattedScheduledDate,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.5.sp,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textHeadline,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(width: 10.w),
+
+            // Right: Time Slot Tile
+            Expanded(
+              flex: 4,
+              child: Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.schedule_rounded,
+                            size: 14.r, color: const Color(0xFF2563EB)),
+                        SizedBox(width: 5.w),
+                        Text(
+                          'Time Window',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 6.h),
+                    Text(
+                      _job.effectiveTimeSlot,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textHeadline,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        SizedBox(height: 12.h),
+
+        // Countdown / Arrival Window Pill with Add to Calendar
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 9.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: const Color(0xFFBFDBFE),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.alarm_on_rounded,
+                size: 16.r,
+                color: const Color(0xFF1D4ED8),
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  _job.countdownBadge,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E40AF),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  DynamicIslandToast.showSuccess(
+                    context,
+                    'Added to your device calendar',
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_month_outlined,
+                          size: 13.r, color: const Color(0xFF2563EB)),
+                      SizedBox(width: 4.w),
+                      Text(
+                        'Add',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF2563EB),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInstantOrderDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: const Color(0xFFFED7AA)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36.r,
+                      height: 36.r,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEA580C),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Icon(Icons.flash_on_rounded,
+                            size: 20.r, color: Colors.white),
+                      ),
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Immediate Service Required',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF9A3412),
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            'Customer is waiting at the premises now. Expected arrival within 30-45 mins.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5.sp,
+                              color: const Color(0xFFC2410C),
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF2F2),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: const Color(0xFFFECACA)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.near_me_rounded,
+                  size: 15.r, color: const Color(0xFFDC2626)),
+              SizedBox(width: 6.w),
+              Expanded(
+                child: Text(
+                  '${_job.distance} away • Direct fast dispatch required',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFB91C1C),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3. CUSTOMER & ADDRESS DETAILS CARD
   // ---------------------------------------------------------------------------
   Widget _buildCustomerCard() {
     return Container(

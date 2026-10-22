@@ -62,6 +62,11 @@ class DevBypassSheet {
           'Need inspection and quotation for leaking main pipeline under the sink and bathroom mixer valve.',
       estimatedBudget: 80.00,
       status: JobCategory.toQuote,
+      orderType: OrderType.scheduled,
+      scheduledDate: DateTime.now().add(const Duration(days: 1)),
+      scheduledTimeSlot: '04:30 PM',
+      latitude: 6.9034,
+      longitude: 79.8546,
     );
 
     IncomingQuotationRequestDrawer.show(context, job: sampleJob);

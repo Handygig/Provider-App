@@ -121,6 +121,49 @@ extension ExtraApprovalStatusExtension on ExtraApprovalStatus {
   }
 }
 
+enum OrderType {
+  instant,
+  scheduled,
+}
+
+extension OrderTypeExtension on OrderType {
+  String get label {
+    switch (this) {
+      case OrderType.instant:
+        return 'Instant Order';
+      case OrderType.scheduled:
+        return 'Scheduled Booking';
+    }
+  }
+
+  String get badgeText {
+    switch (this) {
+      case OrderType.instant:
+        return 'INSTANT ORDER';
+      case OrderType.scheduled:
+        return 'SCHEDULED BOOKING';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case OrderType.instant:
+        return const Color(0xFFEA580C);
+      case OrderType.scheduled:
+        return const Color(0xFF2563EB);
+    }
+  }
+
+  Color get backgroundColor {
+    switch (this) {
+      case OrderType.instant:
+        return const Color(0xFFFFF7ED);
+      case OrderType.scheduled:
+        return const Color(0xFFEFF6FF);
+    }
+  }
+}
+
 class JobModel {
   final String id;
   final String serviceTitle;
@@ -146,6 +189,11 @@ class JobModel {
   ExtraApprovalStatus extraStatus;
   final String paymentMethod;
   final DateTime? jobDate;
+  final OrderType? orderType;
+  final DateTime? scheduledDate;
+  final String? scheduledTimeSlot;
+  final double? latitude;
+  final double? longitude;
 
   JobModel({
     required this.id,
@@ -172,7 +220,94 @@ class JobModel {
     this.extraStatus = ExtraApprovalStatus.none,
     this.paymentMethod = 'Cash on Delivery',
     this.jobDate,
+    this.orderType,
+    this.scheduledDate,
+    this.scheduledTimeSlot,
+    this.latitude,
+    this.longitude,
   });
+
+  double get effectiveLatitude => latitude ?? 6.9034;
+  double get effectiveLongitude => longitude ?? 79.8546;
+
+  OrderType get effectiveOrderType {
+    if (orderType != null) return orderType!;
+    final lower = requestedTime.toLowerCase();
+    if (lower.contains('immediate') ||
+        lower.contains('instant') ||
+        lower.contains('urgent') ||
+        lower.contains('asap') ||
+        lower.contains('now')) {
+      return OrderType.instant;
+    }
+    return OrderType.scheduled;
+  }
+
+  bool get isInstantOrder => effectiveOrderType == OrderType.instant;
+  bool get isScheduled => effectiveOrderType == OrderType.scheduled;
+
+  DateTime get effectiveScheduledDate =>
+      scheduledDate ?? jobDate ?? DateTime.now().add(const Duration(days: 1));
+
+  String get formattedScheduledDate {
+    final d = effectiveScheduledDate;
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final weekday = weekdays[d.weekday - 1];
+    final month = months[d.month - 1];
+    return '$weekday, ${d.day} $month ${d.year}';
+  }
+
+  String get effectiveTimeSlot {
+    if (scheduledTimeSlot != null && scheduledTimeSlot!.isNotEmpty) {
+      return scheduledTimeSlot!;
+    }
+    if (requestedTime.contains('•')) {
+      return requestedTime.split('•').last.trim();
+    }
+    return requestedTime;
+  }
+
+  String get countdownBadge {
+    if (isInstantOrder) {
+      return 'Dispatch ASAP • Expected within ~30 mins';
+    }
+    final now = DateTime.now();
+    final d = effectiveScheduledDate;
+    final diffDays = DateTime(d.year, d.month, d.day)
+        .difference(DateTime(now.year, now.month, now.day))
+        .inDays;
+    if (diffDays == 0) {
+      return 'Scheduled Today • In a few hours';
+    } else if (diffDays == 1) {
+      return 'Scheduled for Tomorrow';
+    } else if (diffDays > 1) {
+      return 'Scheduled in $diffDays days';
+    } else {
+      return 'Scheduled Appointment';
+    }
+  }
 
   DateTime get effectiveDate => jobDate ?? DateTime.now();
 
