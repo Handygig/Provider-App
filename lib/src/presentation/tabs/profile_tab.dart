@@ -260,58 +260,11 @@ class ProfileTab extends StatelessWidget {
                         ),
                       );
                     },
-                    trailing: Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 7.w, vertical: 3.h),
-                      decoration: BoxDecoration(
-                        color: status.backgroundColor,
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(
-                            color: status.color.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            status.badgeText,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 9.5.sp,
-                              fontWeight: FontWeight.w800,
-                              color: status.color,
-                            ),
-                          ),
-                          SizedBox(width: 2.w),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: status.color,
-                            size: 16.r,
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                   _buildMenuTile(
                     icon: Icons.account_balance_outlined,
                     title: 'Bank & Payout Details',
                     subtitle: PayoutService.instance.primaryAccountSummary,
-                    trailing: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 3.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6EA),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Text(
-                        '${PayoutService.instance.accounts.length} linked',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.5.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
                     onTap: () {
                       HapticFeedback.lightImpact();
                       Navigator.push(
@@ -327,24 +280,6 @@ class ProfileTab extends StatelessWidget {
                     title: 'Managed Services & Skills',
                     subtitle:
                         ManagedServicesService.instance.activeServicesSummary,
-                    trailing: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 3.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6EA),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Text(
-                        '${ManagedServicesService.instance.activeServices.length} active',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.5.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
                     onTap: () {
                       HapticFeedback.lightImpact();
                       Navigator.push(
@@ -361,24 +296,6 @@ class ProfileTab extends StatelessWidget {
                     title: 'Coverage Area',
                     subtitle:
                         '${WorkingHoursCoverageService.instance.coverageSummary} • ${WorkingHoursCoverageService.instance.baseLocation}',
-                    trailing: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 3.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6EA),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Text(
-                        '${WorkingHoursCoverageService.instance.radiusKm.toInt()}km',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.5.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
                     onTap: () {
                       HapticFeedback.lightImpact();
                       Navigator.push(
@@ -395,33 +312,6 @@ class ProfileTab extends StatelessWidget {
                     title: 'Notification Preferences',
                     subtitle:
                         NotificationPreferencesService.instance.summary,
-                    trailing: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 3.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: NotificationPreferencesService
-                                .instance.allNotificationsEnabled
-                            ? const Color(0xFFEFF6EA)
-                            : const Color(0xFFFEF2F2),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Text(
-                        NotificationPreferencesService
-                                .instance.allNotificationsEnabled
-                            ? 'ON'
-                            : 'MUTED',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.5.sp,
-                          fontWeight: FontWeight.w800,
-                          color: NotificationPreferencesService
-                                  .instance.allNotificationsEnabled
-                              ? AppColors.primary
-                              : const Color(0xFFEF4444),
-                        ),
-                      ),
-                    ),
                     onTap: () {
                       HapticFeedback.lightImpact();
                       Navigator.push(
