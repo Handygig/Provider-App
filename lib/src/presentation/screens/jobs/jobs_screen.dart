@@ -48,7 +48,7 @@ class _JobsScreenState extends State<JobsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 4,
+      length: 5,
       vsync: this,
       initialIndex: widget.initialCategory.index,
     );
@@ -146,7 +146,41 @@ class _JobsScreenState extends State<JobsScreen>
         status: JobCategory.pendingApprove,
       ),
 
-      // 3. Ongoing
+      // 3. To Start (Customer Approved Quote!)
+      JobModel(
+        id: 'JOB-2970',
+        serviceTitle: 'Main Breaker Box Diagnostic & Replacement',
+        category: 'Electrical',
+        customerName: 'Kavinda Perera',
+        customerRating: 4.9,
+        customerReviewsCount: 27,
+        address: '42 Havelock Road, Colombo 05',
+        distance: '2.5 km away',
+        requestedTime: 'Approved • Ready to Start',
+        description:
+            'Customer accepted quotation of LKR 85.00 for main breaker replacement. Ready to dispatch and commence.',
+        quotedAmount: 85.00,
+        paymentMethod: 'Credit / Debit Card',
+        status: JobCategory.toStart,
+      ),
+      JobModel(
+        id: 'JOB-2968',
+        serviceTitle: 'Emergency Sink Pipeline Burst & Seal',
+        category: 'Plumbing',
+        customerName: 'Malini Senanayake',
+        customerRating: 5.0,
+        customerReviewsCount: 41,
+        address: '15 Gregory\'s Road, Colombo 07',
+        distance: '1.9 km away',
+        requestedTime: 'Approved • Scheduled Today 4:00 PM',
+        description:
+            'Client accepted quotation of LKR 65.00. Ready to begin on-site repair.',
+        quotedAmount: 65.00,
+        paymentMethod: 'Cash on Delivery',
+        status: JobCategory.toStart,
+      ),
+
+      // 4. Ongoing
       JobModel(
         id: 'JOB-2950',
         serviceTitle: 'Water Pressure Pump Motor Servicing',
@@ -527,6 +561,7 @@ class _JobsScreenState extends State<JobsScreen>
   Widget build(BuildContext context) {
     final toQuoteCount = _countForCategory(JobCategory.toQuote);
     final pendingCount = _countForCategory(JobCategory.pendingApprove);
+    final toStartCount = _countForCategory(JobCategory.toStart);
     final ongoingCount = _countForCategory(JobCategory.ongoing);
     final finishedCount = _countForCategory(JobCategory.finished);
 
@@ -621,79 +656,13 @@ class _JobsScreenState extends State<JobsScreen>
                 ),
                 SizedBox(height: 14.h),
 
-                // Pill Tab Bar with Liquid Glass Effect (Customer-App parity)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16.r),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                    child: Container(
-                      padding: EdgeInsets.all(4.r),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.25),
-                            Colors.white.withValues(alpha: 0.05),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16.r),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          width: 1,
-                        ),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        tabAlignment: TabAlignment.start,
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        labelPadding: EdgeInsets.symmetric(
-                            horizontal: 12.w, vertical: 2.h),
-                        indicator: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.accentLime.withValues(alpha: 0.95),
-                              AppColors.accentLime,
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(12.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.12),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                            BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              blurRadius: 1,
-                              offset: const Offset(0, -1),
-                            ),
-                          ],
-                        ),
-                        labelColor: AppColors.primaryDark,
-                        unselectedLabelColor:
-                            Colors.white.withValues(alpha: 0.85),
-                        labelStyle: GoogleFonts.plusJakartaSans(
-                          fontSize: 12.5.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        unselectedLabelStyle: GoogleFonts.plusJakartaSans(
-                          fontSize: 12.5.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        dividerColor: Colors.transparent,
-                        tabs: [
-                          Tab(text: 'To Quote ($toQuoteCount)'),
-                          Tab(text: 'Pending approve ($pendingCount)'),
-                          Tab(text: 'Ongoing ($ongoingCount)'),
-                          Tab(text: 'Finished ($finishedCount)'),
-                        ],
-                      ),
-                    ),
-                  ),
+                // Stage Categories in Tile View (2-Row Responsive Grid)
+                _buildCategoryTileView(
+                  toQuoteCount: toQuoteCount,
+                  pendingCount: pendingCount,
+                  toStartCount: toStartCount,
+                  ongoingCount: ongoingCount,
+                  finishedCount: finishedCount,
                 ),
               ],
             ),
@@ -709,12 +678,201 @@ class _JobsScreenState extends State<JobsScreen>
               children: [
                 _buildJobsList(JobCategory.toQuote),
                 _buildJobsList(JobCategory.pendingApprove),
+                _buildJobsList(JobCategory.toStart),
                 _buildJobsList(JobCategory.ongoing),
                 _buildJobsList(JobCategory.finished),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryTileView({
+    required int toQuoteCount,
+    required int pendingCount,
+    required int toStartCount,
+    required int ongoingCount,
+    required int finishedCount,
+  }) {
+    return AnimatedBuilder(
+      animation: _tabController.animation ?? _tabController,
+      builder: (context, _) {
+        final activeIndex = _tabController.animation != null
+            ? _tabController.animation!.value.round()
+            : _tabController.index;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Row 1: 2 tiles (To Quote & Pending Approve)
+            Row(
+              children: [
+                _buildCategoryTile(
+                  index: 0,
+                  activeIndex: activeIndex,
+                  title: 'To Quote',
+                  count: toQuoteCount,
+                  icon: Icons.request_quote_rounded,
+                ),
+                SizedBox(width: 8.w),
+                _buildCategoryTile(
+                  index: 1,
+                  activeIndex: activeIndex,
+                  title: 'Pending Approve',
+                  count: pendingCount,
+                  icon: Icons.hourglass_top_rounded,
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            // Row 2: 3 tiles (To Start, Ongoing, Finished)
+            Row(
+              children: [
+                _buildCategoryTile(
+                  index: 2,
+                  activeIndex: activeIndex,
+                  title: 'To Start',
+                  count: toStartCount,
+                  icon: Icons.rocket_launch_rounded,
+                ),
+                SizedBox(width: 8.w),
+                _buildCategoryTile(
+                  index: 3,
+                  activeIndex: activeIndex,
+                  title: 'Ongoing',
+                  count: ongoingCount,
+                  icon: Icons.handyman_rounded,
+                ),
+                SizedBox(width: 8.w),
+                _buildCategoryTile(
+                  index: 4,
+                  activeIndex: activeIndex,
+                  title: 'Finished',
+                  count: finishedCount,
+                  icon: Icons.check_circle_rounded,
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCategoryTile({
+    required int index,
+    required int activeIndex,
+    required String title,
+    required int count,
+    required IconData icon,
+  }) {
+    final isSelected = activeIndex == index;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          _tabController.animateTo(index);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          height: 44.h,
+          padding: EdgeInsets.symmetric(horizontal: 8.w),
+          decoration: BoxDecoration(
+            gradient: isSelected
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFE4F089),
+                      Color(0xFFD4DE95),
+                    ],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.16),
+                      Colors.white.withValues(alpha: 0.06),
+                    ],
+                  ),
+            borderRadius: BorderRadius.circular(13.r),
+            border: Border.all(
+              color: isSelected
+                  ? Colors.white.withValues(alpha: 0.8)
+                  : Colors.white.withValues(alpha: 0.2),
+              width: isSelected ? 1.4 : 1.0,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFD4DE95).withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      blurRadius: 2,
+                      offset: const Offset(0, -1),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 15.r,
+                color: isSelected
+                    ? AppColors.primaryDark
+                    : Colors.white.withValues(alpha: 0.9),
+              ),
+              SizedBox(width: 5.w),
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.sp,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected
+                        ? AppColors.primaryDark
+                        : Colors.white.withValues(alpha: 0.95),
+                  ),
+                ),
+              ),
+              SizedBox(width: 5.w),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primaryDark.withValues(alpha: 0.16)
+                      : Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Text(
+                  '$count',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10.5.sp,
+                    fontWeight: FontWeight.w800,
+                    color: isSelected ? AppColors.primaryDark : Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1371,6 +1529,10 @@ class _JobsScreenState extends State<JobsScreen>
           priceLabel = 'Sent Quote';
           priceText = 'LKR ${job.quotedAmount!.toStringAsFixed(2)}';
           break;
+        case JobCategory.toStart:
+          priceLabel = 'Approved Quote';
+          priceText = 'LKR ${job.totalEffectivePrice.toStringAsFixed(2)}';
+          break;
         case JobCategory.ongoing:
           priceLabel = 'Total Job Value';
           priceText = 'LKR ${job.totalEffectivePrice.toStringAsFixed(2)}';
@@ -1765,6 +1927,104 @@ class _JobsScreenState extends State<JobsScreen>
 
                 SizedBox(width: 8.w),
 
+                // Quick Action buttons on card
+                if (job.status == JobCategory.pendingApprove) ...[
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      setState(() {
+                        job.status = JobCategory.toStart;
+                      });
+                      DynamicIslandToast.showSuccess(
+                        context,
+                        '✓ Customer approved quote! Moved to To Start.',
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10.w, vertical: 7.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF16A34A).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10.r),
+                        border: Border.all(
+                          color:
+                              const Color(0xFF16A34A).withValues(alpha: 0.35),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 13.r,
+                            color: const Color(0xFF16A34A),
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            'Approve Quote',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5.sp,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF16A34A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                ] else if (job.status == JobCategory.toStart) ...[
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      setState(() {
+                        job.status = JobCategory.ongoing;
+                      });
+                      DynamicIslandToast.showSuccess(
+                        context,
+                        '🚀 Job started! Moved to Ongoing.',
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 11.w, vertical: 7.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D9488),
+                        borderRadius: BorderRadius.circular(10.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0D9488)
+                                .withValues(alpha: 0.25),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.play_arrow_rounded,
+                            size: 15.r,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 3.w),
+                          Text(
+                            'Start Job',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5.sp,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                ],
+
                 // "See Details" Button
                 GestureDetector(
                   onTap: () => _openJobDetails(job),
@@ -1815,8 +2075,8 @@ class _JobsScreenState extends State<JobsScreen>
   // SLEEK MINIMAL PROGRESS INDICATOR
   // ---------------------------------------------------------------------------
   Widget _buildCardServiceStatusMap(JobModel job, int currentStep) {
-    const stageNames = ['Quote', 'Approval', 'Ongoing', 'Finished'];
-    final activeStageName = stageNames[currentStep.clamp(0, 3)];
+    const stageNames = ['Quote', 'Approval', 'To Start', 'Ongoing', 'Finished'];
+    final activeStageName = stageNames[currentStep.clamp(0, 4)];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1833,7 +2093,7 @@ class _JobsScreenState extends State<JobsScreen>
               ),
             ),
             Text(
-              'Stage ${currentStep + 1} of 4 • $activeStageName',
+              'Stage ${currentStep + 1} of 5 • $activeStageName',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 10.5.sp,
                 fontWeight: FontWeight.w700,
@@ -1844,7 +2104,7 @@ class _JobsScreenState extends State<JobsScreen>
         ),
         SizedBox(height: 5.h),
         Row(
-          children: List.generate(4, (index) {
+          children: List.generate(5, (index) {
             final isPassed = index < currentStep;
             final isCurrent = index == currentStep;
             final isFilled = isPassed || isCurrent;
@@ -1852,7 +2112,7 @@ class _JobsScreenState extends State<JobsScreen>
             return Expanded(
               child: Container(
                 height: 4.h,
-                margin: EdgeInsets.only(right: index < 3 ? 4.w : 0),
+                margin: EdgeInsets.only(right: index < 4 ? 4.w : 0),
                 decoration: BoxDecoration(
                   color: isFilled
                       ? (isCurrent ? job.status.color : const Color(0xFF16A34A))
@@ -1961,6 +2221,12 @@ class _JobsScreenState extends State<JobsScreen>
         subtitle =
             'When you submit quotes to customers, they will remain here until approved.';
         icon = Icons.hourglass_empty_rounded;
+        break;
+      case JobCategory.toStart:
+        title = 'No Jobs Ready To Start';
+        subtitle =
+            'When customers approve your submitted quotes, they will appear here ready to commence.';
+        icon = Icons.play_circle_outline_rounded;
         break;
       case JobCategory.ongoing:
         title = 'No Ongoing Jobs';

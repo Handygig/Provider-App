@@ -4,6 +4,7 @@ import 'package:provider_app/core/constants/app_colors.dart';
 enum JobCategory {
   toQuote,
   pendingApprove,
+  toStart,
   ongoing,
   finished,
 }
@@ -15,6 +16,8 @@ extension JobCategoryExtension on JobCategory {
         return 'To Quote';
       case JobCategory.pendingApprove:
         return 'Pending approve';
+      case JobCategory.toStart:
+        return 'To Start';
       case JobCategory.ongoing:
         return 'Ongoing';
       case JobCategory.finished:
@@ -28,6 +31,8 @@ extension JobCategoryExtension on JobCategory {
         return 'Needs Quote';
       case JobCategory.pendingApprove:
         return 'Pending Approval';
+      case JobCategory.toStart:
+        return 'Ready to Start';
       case JobCategory.ongoing:
         return 'In Progress';
       case JobCategory.finished:
@@ -41,6 +46,8 @@ extension JobCategoryExtension on JobCategory {
         return const Color(0xFFEA580C);
       case JobCategory.pendingApprove:
         return const Color(0xFF2563EB);
+      case JobCategory.toStart:
+        return const Color(0xFF0D9488);
       case JobCategory.ongoing:
         return const Color(0xFF16A34A);
       case JobCategory.finished:
@@ -54,6 +61,8 @@ extension JobCategoryExtension on JobCategory {
         return const Color(0xFFFFF7ED);
       case JobCategory.pendingApprove:
         return const Color(0xFFEFF6FF);
+      case JobCategory.toStart:
+        return const Color(0xFFF0FDFA);
       case JobCategory.ongoing:
         return const Color(0xFFF0FDF4);
       case JobCategory.finished:
@@ -67,6 +76,8 @@ extension JobCategoryExtension on JobCategory {
         return Icons.request_quote_rounded;
       case JobCategory.pendingApprove:
         return Icons.hourglass_top_rounded;
+      case JobCategory.toStart:
+        return Icons.play_circle_outline_rounded;
       case JobCategory.ongoing:
         return Icons.handyman_rounded;
       case JobCategory.finished:

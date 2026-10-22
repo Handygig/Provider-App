@@ -1,10 +1,15 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/domain/models/job_model.dart';
+import 'package:provider_app/src/data/services/working_hours_coverage_service.dart';
+import 'package:provider_app/src/presentation/screens/jobs/job_details_screen.dart';
 import 'package:provider_app/src/presentation/screens/jobs/jobs_screen.dart';
 import 'package:provider_app/src/presentation/tabs/alerts_tab.dart';
 import 'package:provider_app/src/presentation/tabs/profile_tab.dart';
@@ -12,7 +17,6 @@ import 'package:provider_app/src/presentation/tabs/wallet_tab.dart';
 import 'package:provider_app/src/data/services/verification_service.dart';
 import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
-import 'package:provider_app/src/presentation/widgets/incoming_quotation_request_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -26,46 +30,88 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with TickerProviderStateMixin {
   late int _currentIndex;
   bool _isOnline = true;
+  late PageController _projectPageController;
+  int _selectedProjectIndex = 0;
+  GoogleMapController? _mapController;
 
-  final List<Map<String, dynamic>> _jobRequests = [
+  // Top Drawer Collapsible Animation & Measurement
+  late AnimationController _topDrawerController;
+  late Animation<double> _drawerAnimation;
+  double _headerMeasuredHeight = 295.0;
+  final GlobalKey _headerKey = GlobalKey();
+
+  final List<Map<String, dynamic>> _projectsToStart = [
     {
       'id': 'JOB-1024',
-      'service': 'Emergency Pipe Leak Repair',
+      'serviceTitle': 'Emergency Pipe Leak Repair',
       'category': 'Plumbing',
-      'customer': 'Sarah Jenkins',
-      'rating': 4.9,
+      'customerName': 'Sarah Jenkins',
+      'customerPhone': '+94 77 982 1450',
+      'customerRating': 4.9,
+      'address': 'No 18, Galle Road, Kollupitiya, Colombo 03',
       'distance': '2.1 km away',
-      'location': 'Colombo 03, Kollupitiya',
-      'price': 45.00,
-      'urgency': 'Immediate',
-      'time': 'Needs help now',
+      'requestedTime': 'Ready to Start • Immediate',
+      'description':
+          'Main pipeline burst under kitchen sink. Water flooding kitchen floor, requires pipe joint fix and stop-cock replacement.',
+      'price': 65.00,
+      'lat': 6.9147,
+      'lng': 79.8528,
+      'urgencyBadge': 'Ready to Start',
     },
     {
       'id': 'JOB-1025',
-      'service': 'AC Master Filter Clean & Gas Topup',
+      'serviceTitle': 'Split AC Compressor Gas Leak',
       'category': 'AC Repair',
-      'customer': 'David Miller',
-      'rating': 4.8,
-      'distance': '4.5 km away',
-      'location': 'Colombo 07, Cinnamon Gardens',
-      'price': 75.00,
-      'urgency': 'Scheduled',
-      'time': 'Today, 5:30 PM',
+      'customerName': 'David Miller',
+      'customerPhone': '+94 71 432 8900',
+      'customerRating': 4.8,
+      'address': '12/4 Ward Place, Colombo 07',
+      'distance': '3.4 km away',
+      'requestedTime': 'Scheduled Today • 3:30 PM',
+      'description':
+          'Inverter AC unit outdoor fan vibrating violently. Needs nitrogen leak test and R32 refrigerant gas top-up.',
+      'price': 85.00,
+      'lat': 6.9175,
+      'lng': 79.8710,
+      'urgencyBadge': 'Scheduled Today',
     },
     {
       'id': 'JOB-1026',
-      'service': 'Main Switchboard Breaker Trip Fix',
+      'serviceTitle': 'Main Switchboard Breaker Trip Fix',
       'category': 'Electrical',
-      'customer': 'Nimal Perera',
-      'rating': 5.0,
-      'distance': '3.2 km away',
-      'location': 'Rajagiriya, Welikada',
-      'price': 60.00,
-      'urgency': 'Urgent',
-      'time': 'Within 2 hours',
+      'customerName': 'Priya Sharma',
+      'customerPhone': '+94 76 890 1234',
+      'customerRating': 5.0,
+      'address': 'Duplication Road, Bambalapitiya, Colombo 04',
+      'distance': '1.8 km away',
+      'requestedTime': 'Scheduled Today • 5:00 PM',
+      'description':
+          'Circuit breaker trips when high-power appliances run. Isolate faulty kitchen wiring and replace 32A MCB.',
+      'price': 55.00,
+      'lat': 6.8920,
+      'lng': 79.8580,
+      'urgencyBadge': 'Upcoming Today',
+    },
+    {
+      'id': 'JOB-1027',
+      'serviceTitle': 'Water Booster Pump Motor Servicing',
+      'category': 'Plumbing',
+      'customerName': 'Dr. Mohan Lal',
+      'customerPhone': '+94 77 123 4567',
+      'customerRating': 5.0,
+      'address': 'Rosmead Place, Colombo 07',
+      'distance': '2.8 km away',
+      'requestedTime': 'Tomorrow • 9:00 AM',
+      'description':
+          'Pressure sensor replacement and capacitor swap on automatic booster pump.',
+      'price': 90.00,
+      'lat': 6.9160,
+      'lng': 79.8740,
+      'urgencyBadge': 'Tomorrow',
     },
   ];
 
@@ -133,60 +179,109 @@ class _HomeScreenState extends State<HomeScreen> {
     _simulatedRequestIndex++;
 
     final newId = 'JOB-${1000 + DateTime.now().millisecondsSinceEpoch % 9000}';
-    final rawJob = {
+    final offset = (_simulatedRequestIndex % 5) * 0.003;
+    final newProject = {
       'id': newId,
-      'service': template['service'],
-      'category': template['category'],
-      'customer': template['customer'],
-      'rating': template['rating'],
-      'distance': template['distance'],
-      'location': template['location'],
-      'price': template['price'],
-      'urgency': template['urgency'],
-      'time': template['time'],
+      'serviceTitle': template['service'] as String,
+      'category': template['category'] as String,
+      'customerName': template['customer'] as String,
+      'customerPhone': '+94 77 982 1450',
+      'customerRating': (template['rating'] as num).toDouble(),
+      'address': template['location'] as String,
+      'distance': template['distance'] as String,
+      'requestedTime': template['time'] as String,
+      'description': template['description'] as String,
+      'price': (template['price'] as num).toDouble(),
+      'lat': 6.9100 + offset,
+      'lng': 79.8600 + offset,
+      'urgencyBadge': 'New Request',
     };
 
     setState(() {
-      _jobRequests.insert(0, rawJob);
+      _projectsToStart.insert(0, newProject);
+      _selectedProjectIndex = 0;
     });
 
     DynamicIslandToast.showSuccess(
       context,
-      '⚡ Incoming request from ${template['customer']}!',
+      '⚡ New project on map: ${template['service']}',
     );
 
-    final job = JobModel(
-      id: newId,
-      serviceTitle: template['service'] as String,
-      category: template['category'] as String,
-      customerName: template['customer'] as String,
-      customerPhone: '+94 77 982 1450',
-      customerRating: (template['rating'] as num).toDouble(),
-      customerReviewsCount: 32,
-      address: template['location'] as String,
-      distance: template['distance'] as String,
-      requestedTime: template['time'] as String,
-      description: template['description'] as String,
-      estimatedBudget: (template['price'] as num).toDouble(),
-      status: JobCategory.toQuote,
-    );
-
-    // Slide up bottom sheet with Google Map and customer location
-    IncomingQuotationRequestDrawer.show(
-      context,
-      job: job,
-      onQuoteSent: (updatedJob) {
-        setState(() {
-          _jobRequests.removeWhere((item) => item['id'] == newId);
-        });
-      },
-    );
+    if (_projectPageController.hasClients) {
+      _projectPageController.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+    _panToProject(0);
   }
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialTabIndex;
+    _projectPageController = PageController(viewportFraction: 0.92);
+    _topDrawerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+      value: 1.0, // Open by default
+    );
+    _drawerAnimation = CurvedAnimation(
+      parent: _topDrawerController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _topDrawerController.dispose();
+    _projectPageController.dispose();
+    _mapController?.dispose();
+    super.dispose();
+  }
+
+  void _toggleTopDrawer() {
+    HapticFeedback.lightImpact();
+    if (_topDrawerController.isCompleted || _topDrawerController.value > 0.5) {
+      _topDrawerController.reverse();
+    } else {
+      _topDrawerController.forward();
+    }
+  }
+
+  void _expandTopDrawer() {
+    if (_topDrawerController.value < 1.0) {
+      HapticFeedback.lightImpact();
+      _topDrawerController.forward();
+    }
+  }
+
+  void _onDrawerVerticalDragUpdate(DragUpdateDetails details) {
+    final delta = details.primaryDelta ?? 0;
+    final totalHeight =
+        _headerMeasuredHeight > 0 ? _headerMeasuredHeight : 295.0;
+    _topDrawerController.value =
+        (_topDrawerController.value + (delta / totalHeight)).clamp(0.0, 1.0);
+  }
+
+  void _onDrawerVerticalDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity < -300) {
+      // Swiped up vigorously -> collapse drawer
+      _topDrawerController.reverse();
+    } else if (velocity > 300) {
+      // Swiped down vigorously -> open drawer
+      _topDrawerController.forward();
+    } else {
+      // Settle based on threshold
+      if (_topDrawerController.value < 0.6) {
+        _topDrawerController.reverse();
+      } else {
+        _topDrawerController.forward();
+      }
+    }
   }
 
   void _onTabSelected(int index) {
@@ -391,52 +486,93 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _acceptJob(int index) {
+  void _panToProject(int index) {
+    if (index >= 0 && index < _projectsToStart.length) {
+      final project = _projectsToStart[index];
+      _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(
+              project['lat'] as double,
+              project['lng'] as double,
+            ),
+            zoom: 14.5,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _onProjectSelected(int index) {
+    setState(() {
+      _selectedProjectIndex = index;
+    });
+    if (_projectPageController.hasClients) {
+      _projectPageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
+    }
+    _panToProject(index);
+  }
+
+  void _recenterToCurrentProject() {
+    _panToProject(_selectedProjectIndex);
+  }
+
+  void _startProject(Map<String, dynamic> project) {
     if (!VerificationService.instance.isApproved) {
       _showVerificationLockedModal(
         context,
-        pageName: 'Accepting Job Requests',
+        pageName: 'Starting Projects',
       );
       return;
     }
 
     HapticFeedback.mediumImpact();
-    final rawJob = _jobRequests[index];
     final job = JobModel(
-      id: rawJob['id'] as String,
-      serviceTitle: rawJob['service'] as String,
-      category: rawJob['category'] as String,
-      customerName: rawJob['customer'] as String,
-      customerPhone: '+94 77 982 1450',
-      customerRating: (rawJob['rating'] as num).toDouble(),
+      id: project['id'] as String,
+      serviceTitle: project['serviceTitle'] as String,
+      category: project['category'] as String,
+      customerName: project['customerName'] as String,
+      customerPhone: project['customerPhone'] as String,
+      customerRating: (project['customerRating'] as num).toDouble(),
       customerReviewsCount: 28,
-      address: rawJob['location'] as String,
-      distance: rawJob['distance'] as String,
-      requestedTime: rawJob['time'] as String,
-      description:
-          'Customer requested an emergency inspection and quotation for ${rawJob['service']} in ${rawJob['location']}.',
-      estimatedBudget: (rawJob['price'] as num).toDouble(),
-      status: JobCategory.toQuote,
+      address: project['address'] as String,
+      distance: project['distance'] as String,
+      requestedTime: project['requestedTime'] as String,
+      description: project['description'] as String,
+      estimatedBudget: (project['price'] as num).toDouble(),
+      quotedAmount: (project['price'] as num).toDouble(),
+      status: JobCategory.toStart,
     );
 
-    IncomingQuotationRequestDrawer.show(
+    DynamicIslandToast.showSuccess(
       context,
-      job: job,
-      onQuoteSent: (updatedJob) {
-        setState(() {
-          if (index < _jobRequests.length) {
-            _jobRequests.removeAt(index);
-          }
-        });
-      },
+      '🚀 Starting project: ${project['serviceTitle']}',
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => JobDetailsScreen(job: job),
+      ),
     );
   }
 
-  void _declineJob(int index) {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _jobRequests.removeAt(index);
-    });
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'plumbing':
+        return const Color(0xFF0284C7);
+      case 'ac repair':
+      case 'hvac':
+        return AppColors.primary;
+      case 'electrical':
+        return const Color(0xFFD97706);
+      default:
+        return AppColors.primary;
+    }
   }
 
   @override
@@ -480,303 +616,167 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeTab() {
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        // App Header Sliver
-        SliverToBoxAdapter(
-          child: _buildTopHeader(),
-        ),
+    final safeAreaTop = MediaQuery.of(context).padding.top;
+    final collapsedOffset = safeAreaTop + 54.h;
+    final expandedOffset = _headerMeasuredHeight + 12.h;
 
-        // Prominent Verification Status Banner Sliver
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 0),
-            child: _buildVerificationStatusBanner(),
-          ),
-        ),
+    return AnimatedBuilder(
+      animation: _drawerAnimation,
+      builder: (context, _) {
+        final animValue = _drawerAnimation.value;
+        final currentMapTopOffset =
+            collapsedOffset + (expandedOffset - collapsedOffset) * animValue;
+        final drawerTop = -(_headerMeasuredHeight * (1.0 - animValue));
 
-        // Quick Stats Strip
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-            child: _buildStatsGrid(),
-          ),
-        ),
-
-        // Live Incoming Quotation Request Banner with Google Map Trigger
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
-            child: GestureDetector(
-              onTap: () {
-                if (!VerificationService.instance.isApproved) {
-                  _showVerificationLockedModal(
-                    context,
-                    pageName: 'Quotation Requests',
-                  );
-                  return;
-                }
-
-                final job = JobModel(
-                  id: 'JOB-1024',
-                  serviceTitle: 'Emergency Pipe Leak Repair',
-                  category: 'Plumbing',
-                  customerName: 'Sarah Jenkins',
-                  customerPhone: '+94 77 982 1450',
-                  customerRating: 4.9,
-                  customerReviewsCount: 32,
-                  address: 'No 18, Galle Road, Kollupitiya, Colombo 03',
-                  distance: '2.1 km away',
-                  requestedTime: 'Immediate Assistance',
-                  description:
-                      'Urgent kitchen main pipeline burst under sink. Water flooding kitchen floor, requires quick inspection & price quotation.',
-                  estimatedBudget: 65.00,
-                  status: JobCategory.toQuote,
-                );
-                IncomingQuotationRequestDrawer.show(context, job: job);
-              },
-              child: Container(
-                padding: EdgeInsets.all(14.w),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF3D4127), Color(0xFF535B27)],
-                  ),
-                  borderRadius: BorderRadius.circular(18.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF3D4127).withValues(alpha: 0.25),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40.r,
-                      height: 40.r,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD4DE95).withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.radar_rounded,
-                        color: Color(0xFFD4DE95),
-                        size: 22,
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 7.r,
-                                height: 7.r,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFD4DE95),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              SizedBox(width: 5.w),
-                              Text(
-                                'NEW INCOMING QUOTE REQUEST',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFFD4DE95),
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            'Sarah Jenkins • Pipe Leak (2.1 km)',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13.5.sp,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 6.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD4DE95),
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                      child: Text(
-                        'View Map →',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.5.sp,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryDark,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        return Stack(
+          children: [
+            // 1. Interactive Google Map showing Projects to be Started (Full Screen)
+            Positioned.fill(
+              child: _buildProjectsMapView(
+                topOverlayOffset: currentMapTopOffset,
               ),
             ),
-          ),
-        ),
 
-        // Section Title: Available Requests
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Live Requests',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textHeadline,
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 3.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Text(
-                        '${_jobRequests.length} Near You',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.5.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: _simulateIncomingJobRequest,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 5.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3D4127).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(
-                        color: const Color(0xFF3D4127).withValues(alpha: 0.25),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.bolt_rounded,
-                          size: 14.r,
-                          color: AppColors.primaryDark,
-                        ),
-                        SizedBox(width: 4.w),
-                        Text(
-                          'Simulate Request',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.5.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryDark,
-                          ),
-                        ),
-                      ],
-                    ),
+            // 2. Mini Floating Status Trigger Pill (Fades in when drawer is collapsed)
+            if (animValue < 0.95)
+              Positioned(
+                top: safeAreaTop + 8.h,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Opacity(
+                    opacity: (1.0 - (animValue / 0.95)).clamp(0.0, 1.0),
+                    child: _buildMiniDrawerTrigger(),
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
+              ),
 
-        // Job Requests List
-        if (_jobRequests.isEmpty)
-          SliverToBoxAdapter(
-            child: Container(
-              margin: EdgeInsets.all(20.w),
-              padding: EdgeInsets.all(28.r),
+            // 3. Collapsible Top Drawer Header (Dark green container with online toggle and earnings)
+            Positioned(
+              top: drawerTop,
+              left: 0,
+              right: 0,
+              child: _buildTopHeader(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMiniDrawerTrigger() {
+    return GestureDetector(
+      onTap: _expandTopDrawer,
+      onVerticalDragUpdate: _onDrawerVerticalDragUpdate,
+      onVerticalDragEnd: _onDrawerVerticalDragEnd,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+        decoration: BoxDecoration(
+          color: AppColors.darkHeaderBg.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(30.r),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.22),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Mini Avatar
+            Container(
+              width: 26.r,
+              height: 26.r,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20.r),
+                color: AppColors.sage,
+                shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppColors.borderUnselected,
-                  width: 1,
+                  color: Colors.white.withValues(alpha: 0.35),
+                  width: 1.2,
                 ),
               ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.check_circle_outline_rounded,
-                    color: AppColors.primary,
-                    size: 48.r,
+              child: Center(
+                child: Text(
+                  'AP',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryDark,
                   ),
-                  SizedBox(height: 12.h),
-                  Text(
-                    'All caught up!',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textHeadline,
-                    ),
-                  ),
-                  SizedBox(height: 6.h),
-                  Text(
-                    'Stay online to receive instant notifications when new jobs arrive in your area.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13.sp,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          )
-        else
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-                  child: _buildJobCard(_jobRequests[index], index),
-                );
-              },
-              childCount: _jobRequests.length,
+            SizedBox(width: 8.w),
+            // Online status dot
+            Container(
+              width: 7.r,
+              height: 7.r,
+              decoration: BoxDecoration(
+                color: _isOnline
+                    ? const Color(0xFF4ADE80)
+                    : const Color(0xFF9CA3AF),
+                shape: BoxShape.circle,
+                boxShadow: _isOnline
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF4ADE80).withValues(alpha: 0.6),
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : [],
+              ),
             ),
-          ),
-
-
-        // Bottom space for floating curvature navigation bar
-        SliverToBoxAdapter(
-          child: SizedBox(height: 120.h),
+            SizedBox(width: 6.w),
+            Text(
+              _isOnline ? 'Online' : 'Offline',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Container(
+              width: 1,
+              height: 12.h,
+              color: Colors.white.withValues(alpha: 0.25),
+            ),
+            SizedBox(width: 10.w),
+            Text(
+              'LKR 180.00',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFFD4DE95),
+              ),
+            ),
+            SizedBox(width: 4.w),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Colors.white70,
+              size: 18.r,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildVerificationStatusBanner() {
     final service = VerificationService.instance;
     final status = service.status;
+
+    // Hide container after user is verified
+    if (status == VerificationStatus.approved) {
+      return const SizedBox.shrink();
+    }
 
     Color bg;
     Color border;
@@ -939,27 +939,45 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTopHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.darkHeaderBg,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(28.r),
-          bottomRight: Radius.circular(28.r),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final rb = _headerKey.currentContext?.findRenderObject() as RenderBox?;
+      if (rb != null && rb.hasSize) {
+        if ((rb.size.height - _headerMeasuredHeight).abs() > 1.5) {
+          setState(() {
+            _headerMeasuredHeight = rb.size.height;
+          });
+        }
+      }
+    });
+
+    return GestureDetector(
+      key: _headerKey,
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragUpdate: _onDrawerVerticalDragUpdate,
+      onVerticalDragEnd: _onDrawerVerticalDragEnd,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.darkHeaderBg,
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(28.r),
+            bottomRight: Radius.circular(28.r),
           ),
-        ],
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-          child: Column(
-            children: [
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               // Top Bar with Avatar, Name, Pro Badge
               Row(
                 children: [
@@ -1160,7 +1178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
 
-              SizedBox(height: 20.h),
+              SizedBox(height: 16.h),
 
               // Online / Offline Status Switch Banner
               Container(
@@ -1235,166 +1253,157 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+
+              SizedBox(height: 14.h),
+
+              // Today's Earnings Section inside Top Container
+              _buildHeaderEarningsCard(),
+
+              // Verification Status Banner inside Top Drawer (if not verified)
+              if (!VerificationService.instance.isApproved) ...[
+                SizedBox(height: 12.h),
+                _buildVerificationStatusBanner(),
+              ],
+
+              SizedBox(height: 12.h),
+
+              // Interactive Drag Handle Pill with Swipe-up hint
+              GestureDetector(
+                onTap: _toggleTopDrawer,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 20.w),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 44.w,
+                          height: 4.5.h,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(3.r),
+                          ),
+                        ),
+                        SizedBox(height: 5.h),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.keyboard_arrow_up_rounded,
+                              color: Colors.white.withValues(alpha: 0.6),
+                              size: 15.r,
+                            ),
+                            SizedBox(width: 3.w),
+                            Text(
+                              'Swipe up to tuck away',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10.5.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.65),
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildStatsGrid() {
+  Widget _buildHeaderEarningsCard() {
     return Container(
-      padding: EdgeInsets.all(18.r),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
-          color: AppColors.borderUnselected,
+          color: Colors.white.withValues(alpha: 0.18),
           width: 1,
         ),
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Text(
+                'Today\'s Earnings',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white70,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    'Today\'s Earnings',
+                    'LKR 180.00',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textMuted,
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 4.h),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        'LKR 180.00',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 26.sp,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textHeadline,
-                        ),
+                  SizedBox(width: 8.w),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 6.w,
+                      vertical: 2.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4DE95),
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                    child: Text(
+                      '+18%',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.5.sp,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primaryDark,
                       ),
-                      SizedBox(width: 8.w),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 6.w,
-                          vertical: 2.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(6.r),
-                        ),
-                        child: Text(
-                          '+18%',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF166534),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  DynamicIslandToast.showSuccess(
-                    context,
-                    'Payout initiated: LKR 180.00',
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  foregroundColor: AppColors.primary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-                ),
-                icon:
-                    const Icon(Icons.account_balance_wallet_outlined, size: 18),
-                label: Text(
-                  'Payout',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
             ],
           ),
-          Divider(height: 24.h, color: AppColors.borderUnselected),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatItem('Completed', '4 Jobs', Icons.done_all_rounded,
-                  onTap: () => _onTabSelected(1)),
-              Container(
-                height: 24.h,
-                width: 1,
-                color: AppColors.borderUnselected,
+          ElevatedButton.icon(
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              DynamicIslandToast.showSuccess(
+                context,
+                'Payout initiated: LKR 180.00',
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD4DE95),
+              foregroundColor: AppColors.primaryDark,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14.r),
               ),
-              _buildStatItem('Rating', '4.9 ★', Icons.star_rate_rounded),
-              Container(
-                height: 24.h,
-                width: 1,
-                color: AppColors.borderUnselected,
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+            ),
+            icon: const Icon(Icons.account_balance_wallet_outlined, size: 16),
+            label: Text(
+              'Payout',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5.sp,
+                fontWeight: FontWeight.w800,
               ),
-              _buildStatItem('Acceptance', '96%', Icons.thumb_up_alt_outlined),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String title, String value, IconData icon,
-      {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 15.r, color: AppColors.primary),
-              SizedBox(width: 4.w),
-              Text(
-                value,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textHeadline,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 2.h),
-          Text(
-            title,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11.5.sp,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textMuted,
             ),
           ),
         ],
@@ -1402,166 +1411,385 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildJobCard(Map<String, dynamic> job, int index) {
+  Widget _buildProjectsMapView({double topOverlayOffset = 14.0}) {
+    final baseLat = WorkingHoursCoverageService.instance.baseLatitude;
+    final baseLng = WorkingHoursCoverageService.instance.baseLongitude;
+
+    return Stack(
+      children: [
+        // 1. Google Map Canvas
+        Positioned.fill(
+          child: GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: _projectsToStart.isNotEmpty
+                  ? LatLng(
+                      _projectsToStart[_selectedProjectIndex]['lat'] as double,
+                      _projectsToStart[_selectedProjectIndex]['lng'] as double,
+                    )
+                  : LatLng(baseLat, baseLng),
+              zoom: 14.0,
+            ),
+            mapType: MapType.normal,
+            markers: _buildMapMarkers(),
+            circles: {
+              Circle(
+                circleId: const CircleId('provider_coverage_area'),
+                center: LatLng(baseLat, baseLng),
+                radius: 4000,
+                fillColor: AppColors.primary.withValues(alpha: 0.08),
+                strokeColor: AppColors.primaryDark.withValues(alpha: 0.35),
+                strokeWidth: 1,
+              ),
+            },
+            zoomControlsEnabled: false,
+            myLocationButtonEnabled: false,
+            mapToolbarEnabled: false,
+            compassEnabled: false,
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+              Factory<OneSequenceGestureRecognizer>(
+                () => EagerGestureRecognizer(),
+              ),
+            },
+            onMapCreated: (controller) {
+              _mapController = controller;
+            },
+          ),
+        ),
+
+        // 2. Top Map Overlay (Projects Pill Badge & Recenter Button)
+        Positioned(
+          top: topOverlayOffset,
+          left: 16.w,
+          right: 16.w,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Projects count indicator
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(
+                    color: const Color(0xFFE2E6D5),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8.r,
+                      height: 8.r,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF16A34A),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    SizedBox(width: 7.w),
+                    Text(
+                      '${_projectsToStart.length} Projects to Start',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textHeadline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Recenter map button
+              GestureDetector(
+                onTap: _recenterToCurrentProject,
+                child: Container(
+                  width: 38.r,
+                  height: 38.r,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFE2E6D5),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.my_location_rounded,
+                    size: 18.r,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 3. Floating Project Card Slider (Above Bottom Navigation Bar)
+        if (_projectsToStart.isNotEmpty)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 105.h,
+            child: SizedBox(
+              height: 185.h,
+              child: PageView.builder(
+                controller: _projectPageController,
+                itemCount: _projectsToStart.length,
+                onPageChanged: (index) {
+                  setState(() => _selectedProjectIndex = index);
+                  _panToProject(index);
+                },
+                itemBuilder: (context, index) {
+                  final project = _projectsToStart[index];
+                  final isSelected = index == _selectedProjectIndex;
+                  return _buildProjectCardItem(project, index, isSelected);
+                },
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Set<Marker> _buildMapMarkers() {
+    final markers = <Marker>{};
+    final baseLat = WorkingHoursCoverageService.instance.baseLatitude;
+    final baseLng = WorkingHoursCoverageService.instance.baseLongitude;
+
+    // Provider Location Marker
+    markers.add(
+      Marker(
+        markerId: const MarkerId('provider_location_marker'),
+        position: LatLng(baseLat, baseLng),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+        infoWindow: const InfoWindow(
+          title: 'Your Location',
+          snippet: 'Alex Perera (Ready)',
+        ),
+      ),
+    );
+
+    // Projects to Start Markers
+    for (int i = 0; i < _projectsToStart.length; i++) {
+      final p = _projectsToStart[i];
+      final isSelected = i == _selectedProjectIndex;
+      markers.add(
+        Marker(
+          markerId: MarkerId(p['id'] as String),
+          position: LatLng(p['lat'] as double, p['lng'] as double),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            isSelected
+                ? BitmapDescriptor.hueGreen
+                : BitmapDescriptor.hueOrange,
+          ),
+          infoWindow: InfoWindow(
+            title: p['serviceTitle'] as String,
+            snippet:
+                '${p['customerName']} • LKR ${(p['price'] as double).toStringAsFixed(2)}',
+          ),
+          onTap: () => _onProjectSelected(i),
+        ),
+      );
+    }
+
+    return markers;
+  }
+
+  Widget _buildProjectCardItem(
+    Map<String, dynamic> project,
+    int index,
+    bool isSelected,
+  ) {
+    final categoryColor = _getCategoryColor(project['category'] as String);
+
     return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22.r),
         border: Border.all(
-          color: AppColors.borderUnselected,
-          width: 1,
+          color: isSelected ? AppColors.primary : const Color(0xFFE8ECE1),
+          width: isSelected ? 1.5 : 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.09),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: EdgeInsets.all(18.r),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Header Row: Category Pill, Urgency Badge, Price
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10.r),
+                  color: categoryColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
-                  job['category'] as String,
+                  project['category'] as String,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                    color: categoryColor,
                   ),
                 ),
               ),
+              SizedBox(width: 6.w),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 5.r,
+                      height: 5.r,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF166534),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      project['urgencyBadge'] as String,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF166534),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
               Text(
-                'LKR ${(job['price'] as double).toStringAsFixed(2)}',
+                'LKR ${(project['price'] as double).toStringAsFixed(2)}',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 20.sp,
+                  fontSize: 17.sp,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textHeadline,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+
+          // Title
           Text(
-            job['service'] as String,
+            project['serviceTitle'] as String,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 16.sp,
+              fontSize: 15.sp,
               fontWeight: FontWeight.w800,
               color: AppColors.textHeadline,
-              height: 1.25,
             ),
           ),
-          SizedBox(height: 10.h),
+
+          // Customer & Location
           Row(
             children: [
               Icon(
                 Icons.location_on_outlined,
-                size: 16.r,
+                size: 14.r,
                 color: AppColors.textMuted,
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: 3.w),
               Expanded(
                 child: Text(
-                  '${job['distance']} • ${job['location']}',
+                  '${project['distance']} • ${project['address']}',
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12.5.sp,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 11.5.sp,
                     color: AppColors.textSecondary,
                   ),
                 ),
               ),
-            ],
-          ),
-          SizedBox(height: 6.h),
-          Row(
-            children: [
-              Icon(
-                Icons.access_time_rounded,
-                size: 16.r,
-                color: const Color(0xFFE65100),
-              ),
-              SizedBox(width: 4.w),
+              SizedBox(width: 6.w),
               Text(
-                job['time'] as String,
+                '${project['customerName']} (${project['customerRating']}★)',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.sp,
+                  fontSize: 11.sp,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFFE65100),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                'Customer: ${job['customer']} (${job['rating']}★)',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5.sp,
-                  fontWeight: FontWeight.w500,
                   color: AppColors.textMuted,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 16.h),
+
+          // Action Button Row
           Row(
             children: [
-              Expanded(
-                flex: 1,
-                child: OutlinedButton(
-                  onPressed: () => _declineJob(index),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFEF4444),
-                    side: const BorderSide(color: Color(0xFFFCA5A5)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.r),
-                    ),
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                  ),
-                  child: Text(
-                    'Decline',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
+              // Page index indicator
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Text(
+                  '${index + 1}/${_projectsToStart.length}',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMuted,
                   ),
                 ),
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: 8.w),
               Expanded(
-                flex: 2,
-                child: ElevatedButton(
-                  onPressed: () => _acceptJob(index),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.buttonBackground,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.r),
-                    ),
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Accept Job',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
+                child: SizedBox(
+                  height: 38.h,
+                  child: ElevatedButton(
+                    onPressed: () => _startProject(project),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.buttonBackground,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
-                      SizedBox(width: 6.w),
-                      const Icon(Icons.arrow_forward_rounded, size: 18),
-                    ],
+                      padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Start Project',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        const Icon(Icons.arrow_forward_rounded, size: 16),
+                      ],
+                    ),
                   ),
                 ),
               ),

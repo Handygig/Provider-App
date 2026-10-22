@@ -1544,7 +1544,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
             },
             behavior: HitTestBehavior.opaque,
             child: Row(
-              children: List.generate(4, (index) {
+              children: List.generate(JobCategory.values.length, (index) {
                 final category = JobCategory.values[index];
                 final isPassed = index < currentIdx;
                 final isCurrent = index == currentIdx;
@@ -1573,7 +1573,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                               ),
 
                             // Right Connector
-                            if (index < 3)
+                            if (index < JobCategory.values.length - 1)
                               Positioned(
                                 left: 17.r,
                                 right: 0,
@@ -1730,8 +1730,19 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         iconData = Icons.hourglass_top_rounded;
         stageTitle = 'Stage 2: Awaiting Customer Approval';
         stageDesc =
-            'Quote of LKR ${price.toStringAsFixed(2)} was sent. Customer is reviewing. Once approved, the job automatically shifts to Ongoing.';
-        actionHint = 'Action: Client Approved • Start Job';
+            'Quote of LKR ${price.toStringAsFixed(2)} was sent. Customer is reviewing. Once approved, the job automatically shifts to To Start.';
+        actionHint = 'Action: Customer approval pending';
+        break;
+
+      case JobCategory.toStart:
+        bannerBg = const Color(0xFFF0FDFA);
+        bannerBorder = const Color(0xFFCCFBF1);
+        iconColor = const Color(0xFF0D9488);
+        iconData = Icons.play_circle_outline_rounded;
+        stageTitle = 'Stage 3: Customer Approved • Ready to Start';
+        stageDesc =
+            'Customer approved quotation of LKR ${price.toStringAsFixed(2)}. Prepare equipment and start the job to move to Ongoing.';
+        actionHint = 'Action: Tap "Start Job Now" below';
         break;
 
       case JobCategory.ongoing:
@@ -1740,7 +1751,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           bannerBorder = const Color(0xFFFDE68A);
           iconColor = const Color(0xFFD97706);
           iconData = Icons.hourglass_top_rounded;
-          stageTitle = 'Stage 3: Ongoing • Extra Pending Approval';
+          stageTitle = 'Stage 4: Ongoing • Extra Pending Approval';
           stageDesc =
               'Extra quote of +LKR ${_job.extraAmount!.toStringAsFixed(2)} for "${_job.extraReason}" requested. Awaiting customer confirmation.';
           actionHint = 'Status: Waiting for customer to accept variation';
@@ -1749,7 +1760,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           bannerBorder = const Color(0xFFBBF7D0);
           iconColor = const Color(0xFF16A34A);
           iconData = Icons.construction_rounded;
-          stageTitle = 'Stage 3: Ongoing • Extra Approved ✓';
+          stageTitle = 'Stage 4: Ongoing • Extra Approved ✓';
           stageDesc =
               'Customer approved extra +LKR ${_job.extraAmount!.toStringAsFixed(2)}. New total payable is LKR ${_job.totalEffectivePrice.toStringAsFixed(2)}.';
           actionHint = 'Action: Mark Job Finished & Collect';
@@ -1758,7 +1769,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
           bannerBorder = const Color(0xFFDBEAFE);
           iconColor = const Color(0xFF2563EB);
           iconData = Icons.construction_rounded;
-          stageTitle = 'Stage 3: Service In Progress';
+          stageTitle = 'Stage 4: Service In Progress';
           stageDesc =
               'You are actively carrying out the service. You can request extra quotes if needed, or complete when finished.';
           actionHint = 'Action: Mark Job Finished & Collect';
@@ -1770,7 +1781,7 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         bannerBorder = const Color(0xFFDCFCE7);
         iconColor = const Color(0xFF16A34A);
         iconData = Icons.task_alt_rounded;
-        stageTitle = 'Stage 4: Job Completed & Finalized';
+        stageTitle = 'Stage 5: Job Completed & Finalized';
         stageDesc =
             'All milestones successfully passed on ${_job.completionDate ?? "Today"}. Payout and feedback finalized with 5.0★ rating.';
         actionHint = 'Completed: Invoice available';
@@ -2367,6 +2378,9 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     } else if (_job.status == JobCategory.pendingApprove) {
       actionLabel = 'Edit Quote';
       actionTap = _openQuotationDialog;
+    } else if (_job.status == JobCategory.toStart) {
+      actionLabel = 'Approved ✓';
+      actionTap = null;
     } else if (isOngoing) {
       if (_job.extraStatus == ExtraApprovalStatus.none) {
         actionLabel = '+ Add Extra';
@@ -3280,20 +3294,44 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
       case JobCategory.pendingApprove:
         return ElevatedButton.icon(
           onPressed: () => _advanceStage(
-            JobCategory.ongoing,
+            JobCategory.toStart,
             successMessage:
-                'Customer approved! Stage automatically moved to Ongoing.',
+                'Customer approved quote! Job moved to "To Start".',
           ),
-          icon: const Icon(Icons.play_arrow_rounded, size: 20),
+          icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
           label: Text(
-            'Client Approved • Start Job',
+            'Simulate Customer Approval',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15.sp,
               fontWeight: FontWeight.w700,
             ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2563EB),
+            backgroundColor: const Color(0xFF16A34A),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(26.r),
+            ),
+          ),
+        );
+
+      case JobCategory.toStart:
+        return ElevatedButton.icon(
+          onPressed: () => _advanceStage(
+            JobCategory.ongoing,
+            successMessage:
+                'Job started! Stage moved to Ongoing.',
+          ),
+          icon: const Icon(Icons.play_arrow_rounded, size: 20),
+          label: Text(
+            'Start Job Now',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(26.r),

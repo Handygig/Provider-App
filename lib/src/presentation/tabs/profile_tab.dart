@@ -5,10 +5,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/data/services/managed_services_service.dart';
+import 'package:provider_app/src/data/services/notification_preferences_service.dart';
 import 'package:provider_app/src/data/services/payout_service.dart';
 import 'package:provider_app/src/data/services/verification_service.dart';
 import 'package:provider_app/src/data/services/working_hours_coverage_service.dart';
 import 'package:provider_app/src/presentation/screens/coverage/working_hours_coverage_screen.dart';
+import 'package:provider_app/src/presentation/screens/notifications/notification_preferences_screen.dart';
 import 'package:provider_app/src/presentation/screens/payout/bank_payout_details_screen.dart';
 import 'package:provider_app/src/presentation/screens/services/managed_services_skills_screen.dart';
 import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
@@ -25,6 +27,7 @@ class ProfileTab extends StatelessWidget {
         PayoutService.instance,
         ManagedServicesService.instance,
         WorkingHoursCoverageService.instance,
+        NotificationPreferencesService.instance,
       ]),
       builder: (context, _) {
         final status = VerificationService.instance.status;
@@ -390,8 +393,45 @@ class ProfileTab extends StatelessWidget {
                   _buildMenuTile(
                     icon: Icons.notifications_none_rounded,
                     title: 'Notification Preferences',
-                    subtitle: 'Instant SMS & Push Alerts enabled',
-                    onTap: () {},
+                    subtitle:
+                        NotificationPreferencesService.instance.summary,
+                    trailing: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 3.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: NotificationPreferencesService
+                                .instance.allNotificationsEnabled
+                            ? const Color(0xFFEFF6EA)
+                            : const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        NotificationPreferencesService
+                                .instance.allNotificationsEnabled
+                            ? 'ON'
+                            : 'MUTED',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w800,
+                          color: NotificationPreferencesService
+                                  .instance.allNotificationsEnabled
+                              ? AppColors.primary
+                              : const Color(0xFFEF4444),
+                        ),
+                      ),
+                    ),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const NotificationPreferencesScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuTile(
                     icon: Icons.help_outline_rounded,

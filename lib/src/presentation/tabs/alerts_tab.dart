@@ -484,7 +484,7 @@ class _AlertsTabState extends State<AlertsTab> {
                             description: item['body'] as String,
                             estimatedBudget: 45.00,
                             status: item['title'].toString().contains('Accepted')
-                                ? JobCategory.ongoing
+                                ? JobCategory.toStart
                                 : JobCategory.toQuote,
                             quotedAmount: item['title'].toString().contains('Accepted')
                                 ? 135.00
