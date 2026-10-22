@@ -21,6 +21,8 @@ extension VerificationStatusExtension on VerificationStatus {
     }
   }
 
+  String get title => label;
+
   String get badgeText {
     switch (this) {
       case VerificationStatus.notSubmitted:
@@ -78,7 +80,7 @@ class VerificationService extends ChangeNotifier {
   String? _brDocPath;
   String? _brNumber = 'PV-00249182';
   String? _skillCertPath;
-  String? _skillName = 'NVQ Level 4 - Plumbing & Gas Fitting';
+  final String _skillName = 'NVQ Level 4 - Plumbing & Gas Fitting';
 
   DateTime? _submittedAt = DateTime.now().subtract(const Duration(hours: 3));
   String? _adminFeedback =
@@ -100,6 +102,19 @@ class VerificationService extends ChangeNotifier {
   String? get skillName => _skillName;
   DateTime? get submittedAt => _submittedAt;
   String? get adminFeedback => _adminFeedback;
+
+  String get formattedSubmittedDate {
+    if (_submittedAt == null) return 'recently';
+    final now = DateTime.now();
+    final diff = now.difference(_submittedAt!);
+    if (diff.inHours < 1) {
+      return '${diff.inMinutes} mins ago';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours} hours ago';
+    } else {
+      return '${diff.inDays} days ago';
+    }
+  }
 
   bool get hasNicFront => _nicFrontPath != null || _status == VerificationStatus.pending;
   bool get hasNicBack => _nicBackPath != null || _status == VerificationStatus.pending;

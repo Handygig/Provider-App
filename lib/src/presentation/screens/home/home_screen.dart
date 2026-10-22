@@ -273,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 status == VerificationStatus.pending
                     ? 'Your identity documents are currently under admin review. Once an administrator approves your account, you will have full access to $pageName.'
-                    : 'To access $pageName, you must upload your National ID, Business Registration, and Trade License for admin review and approval.',
+                    : 'To access $pageName, you must upload your National ID and credentials (Business Registration is optional) for admin review and approval.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13.5.sp,
@@ -774,6 +774,170 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildVerificationStatusBanner() {
+    final service = VerificationService.instance;
+    final status = service.status;
+
+    Color bg;
+    Color border;
+    Color titleColor;
+    IconData icon;
+    String badgeText;
+    String heading;
+    String description;
+    String actionText;
+
+    switch (status) {
+      case VerificationStatus.notSubmitted:
+        bg = const Color(0xFFFEF3C7);
+        border = const Color(0xFFFDE68A);
+        titleColor = const Color(0xFF92400E);
+        icon = Icons.warning_amber_rounded;
+        badgeText = 'ACTION REQUIRED';
+        heading = 'Account Verification Incomplete';
+        description =
+            'Upload your National ID and credentials (BR optional) to unlock all pages & start taking jobs.';
+        actionText = 'Upload Documents Now';
+        break;
+      case VerificationStatus.pending:
+        bg = const Color(0xFFEFF6FF);
+        border = const Color(0xFFBFDBFE);
+        titleColor = const Color(0xFF1E40AF);
+        icon = Icons.hourglass_top_rounded;
+        badgeText = 'UNDER ADMIN REVIEW';
+        heading = 'Verification in Progress';
+        description =
+            'Your identity documents were submitted on ${service.formattedSubmittedDate}. Full platform access will unlock as soon as admin approves.';
+        actionText = 'View Submission & Status';
+        break;
+      case VerificationStatus.rejected:
+        bg = const Color(0xFFFEF2F2);
+        border = const Color(0xFFFECACA);
+        titleColor = const Color(0xFF991B1B);
+        icon = Icons.error_outline_rounded;
+        badgeText = 'RESUBMISSION NEEDED';
+        heading = 'Verification Needs Attention';
+        description = (service.adminFeedback != null &&
+                service.adminFeedback!.isNotEmpty)
+            ? 'Admin note: "${service.adminFeedback}"'
+            : 'Please review and resubmit your documents.';
+        actionText = 'Update & Resubmit Documents';
+        break;
+      case VerificationStatus.approved:
+        bg = const Color(0xFFF0FDF4);
+        border = const Color(0xFFBBF7D0);
+        titleColor = const Color(0xFF166534);
+        icon = Icons.verified_user_rounded;
+        badgeText = 'VERIFIED PARTNER';
+        heading = 'Identity & License Verified';
+        description =
+            'Your partner documents are approved by admin. Full platform access is unlocked.';
+        actionText = 'View Verified Credentials';
+        break;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const LicenseVerificationScreen(),
+          ),
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(color: border, width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(6.r),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: titleColor, size: 18.r),
+                ),
+                SizedBox(width: 8.w),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Text(
+                    badgeText,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 9.5.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                      color: titleColor,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 13.r,
+                  color: titleColor.withValues(alpha: 0.6),
+                ),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            Text(
+              heading,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w800,
+                color: titleColor,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              description,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.sp,
+                height: 1.45,
+                fontWeight: FontWeight.w500,
+                color: titleColor.withValues(alpha: 0.85),
+              ),
+            ),
+            SizedBox(height: 10.h),
+            Row(
+              children: [
+                Text(
+                  actionText,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: titleColor,
+                  ),
+                ),
+                SizedBox(width: 4.w),
+                Icon(Icons.arrow_right_alt_rounded, size: 16.r, color: titleColor),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTopHeader() {
     return Container(
       decoration: BoxDecoration(
@@ -858,6 +1022,63 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontSize: 10.sp,
                                   fontWeight: FontWeight.w900,
                                   color: AppColors.primaryDark,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 6.w),
+                            // Verification Status Pill in Top Header
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const LicenseVerificationScreen(),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 6.w,
+                                  vertical: 2.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: VerificationService.instance.isApproved
+                                      ? AppColors.accentLime
+                                      : VerificationService.instance.status.backgroundColor,
+                                  borderRadius: BorderRadius.circular(6.r),
+                                  border: Border.all(
+                                    color: VerificationService.instance.status.color
+                                        .withValues(alpha: 0.35),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      VerificationService.instance.isApproved
+                                          ? Icons.check_circle_rounded
+                                          : (VerificationService.instance.status ==
+                                                  VerificationStatus.pending
+                                              ? Icons.schedule_rounded
+                                              : Icons.error_outline_rounded),
+                                      size: 10.r,
+                                      color: VerificationService.instance.isApproved
+                                          ? AppColors.primaryDark
+                                          : VerificationService.instance.status.color,
+                                    ),
+                                    SizedBox(width: 3.w),
+                                    Text(
+                                      VerificationService.instance.status.badgeText,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 9.5.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: VerificationService.instance.isApproved
+                                            ? AppColors.primaryDark
+                                            : VerificationService.instance.status.color,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -1426,8 +1647,11 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
   }) {
     final bool isSelected = _currentIndex == index;
+    final bool isLocked =
+        (index == 1 || index == 2) && !VerificationService.instance.isApproved;
     final Color activeColor = AppColors.primary;
-    final Color inactiveColor = const Color(0xFF9CA09A);
+    final Color inactiveColor =
+        isLocked ? const Color(0xFFB4B9AC) : const Color(0xFF9CA09A);
 
     return GestureDetector(
       onTap: () => _onTabSelected(index),
@@ -1438,14 +1662,36 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-              child: Icon(
-                icon,
-                size: 22.r,
-                color: isSelected ? activeColor : inactiveColor,
-              ),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: Icon(
+                    icon,
+                    size: 22.r,
+                    color: isSelected ? activeColor : inactiveColor,
+                  ),
+                ),
+                if (isLocked)
+                  Positioned(
+                    right: -6.w,
+                    top: -3.h,
+                    child: Container(
+                      padding: EdgeInsets.all(2.5.r),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD97706),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.lock_rounded,
+                        size: 8.5.r,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             SizedBox(height: 3.h),
             Text(

@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:provider_app/src/data/services/payout_service.dart';
+import 'package:provider_app/src/presentation/screens/payout/bank_payout_details_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 
 class WalletTab extends StatefulWidget {
@@ -749,7 +751,85 @@ class _WalletTabState extends State<WalletTab> {
                       ),
                   ),
 
-                  SizedBox(height: 24.h),
+                  SizedBox(height: 16.h),
+
+                  // Destination Bank Account Box
+                  Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAF6),
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(color: const Color(0xFFE2E6D5)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8.r),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F3E8F).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.account_balance_rounded,
+                            color: Color(0xFF0F3E8F),
+                            size: 18,
+                          ),
+                        ),
+                        SizedBox(width: 10.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Deposit To Payout Account',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10.5.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              Text(
+                                PayoutService.instance.primaryAccountSummary,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12.5.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textHeadline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(bottomSheetContext);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const BankPayoutDetailsScreen(),
+                              ),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.w,
+                              vertical: 4.h,
+                            ),
+                            minimumSize: Size.zero,
+                          ),
+                          child: Text(
+                            'Manage',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 18.h),
 
                   // Submit button
                   SizedBox(
@@ -784,12 +864,16 @@ class _WalletTabState extends State<WalletTab> {
                         HapticFeedback.heavyImpact();
                         Navigator.pop(bottomSheetContext);
 
+                        final primaryBank = PayoutService.instance.primaryAccount;
+                        final bankName = primaryBank?.bankName ?? 'Bank';
+                        final bankSummary = PayoutService.instance.primaryAccountSummary;
+
                         setState(() {
                           _availableBalance -= val;
                           _transactions.insert(0, {
                             'id':
                                 'TXN-${DateTime.now().millisecondsSinceEpoch % 10000}',
-                            'title': 'Withdrawal to Commercial Bank',
+                            'title': 'Withdrawal to $bankName',
                             'type': 'payout',
                             'paymentMode': 'Bank Transfer',
                             'customer': null,
@@ -801,7 +885,7 @@ class _WalletTabState extends State<WalletTab> {
                             'netAmount': -val,
                             'date': 'Just now',
                             'status': 'Processing',
-                            'bank': 'Commercial Bank •••• 4291',
+                            'bank': bankSummary,
                           });
                         });
 

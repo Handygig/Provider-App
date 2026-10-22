@@ -751,8 +751,9 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
   Widget _buildBrSection(VerificationStatus status) {
     return _buildSectionCard(
       title: '2. Business Registration / Trade License',
-      subtitle: 'Upload proof of registered business or Grama Niladhari certificate',
-      isRequired: true,
+      subtitle:
+          'Optional for sole proprietors & individual service providers',
+      isRequired: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

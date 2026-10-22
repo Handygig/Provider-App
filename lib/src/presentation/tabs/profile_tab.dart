@@ -4,7 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:provider_app/src/data/services/managed_services_service.dart';
+import 'package:provider_app/src/data/services/payout_service.dart';
 import 'package:provider_app/src/data/services/verification_service.dart';
+import 'package:provider_app/src/data/services/working_hours_coverage_service.dart';
+import 'package:provider_app/src/presentation/screens/coverage/working_hours_coverage_screen.dart';
+import 'package:provider_app/src/presentation/screens/payout/bank_payout_details_screen.dart';
+import 'package:provider_app/src/presentation/screens/services/managed_services_skills_screen.dart';
 import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
 import 'package:provider_app/src/presentation/screens/welcome/welcome_screen.dart';
 
@@ -14,7 +20,12 @@ class ProfileTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: VerificationService.instance,
+      animation: Listenable.merge([
+        VerificationService.instance,
+        PayoutService.instance,
+        ManagedServicesService.instance,
+        WorkingHoursCoverageService.instance,
+      ]),
       builder: (context, _) {
         final status = VerificationService.instance.status;
 
@@ -279,20 +290,102 @@ class ProfileTab extends StatelessWidget {
                   _buildMenuTile(
                     icon: Icons.account_balance_outlined,
                     title: 'Bank & Payout Details',
-                    subtitle: 'Commercial Bank of Ceylon •••• 4210',
-                    onTap: () {},
+                    subtitle: PayoutService.instance.primaryAccountSummary,
+                    trailing: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 3.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6EA),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        '${PayoutService.instance.accounts.length} linked',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BankPayoutDetailsScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuTile(
                     icon: Icons.build_outlined,
                     title: 'Managed Services & Skills',
-                    subtitle: 'Plumbing, AC Service, Electrical Maintenance',
-                    onTap: () {},
+                    subtitle:
+                        ManagedServicesService.instance.activeServicesSummary,
+                    trailing: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 3.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6EA),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        '${ManagedServicesService.instance.activeServices.length} active',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const ManagedServicesSkillsScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuTile(
-                    icon: Icons.access_time_rounded,
-                    title: 'Working Hours & Coverage Area',
-                    subtitle: 'Mon - Sat (8:00 AM - 6:00 PM) • Colombo 1-15',
-                    onTap: () {},
+                    icon: Icons.location_on_outlined,
+                    title: 'Coverage Area',
+                    subtitle:
+                        '${WorkingHoursCoverageService.instance.coverageSummary} • ${WorkingHoursCoverageService.instance.baseLocation}',
+                    trailing: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 3.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6EA),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        '${WorkingHoursCoverageService.instance.radiusKm.toInt()}km',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const WorkingHoursCoverageScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _buildMenuTile(
                     icon: Icons.notifications_none_rounded,
