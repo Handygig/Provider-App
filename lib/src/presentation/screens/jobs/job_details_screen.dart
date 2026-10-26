@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:provider_app/src/data/services/provider_session_service.dart';
 import 'package:provider_app/src/domain/models/job_model.dart';
 import 'package:provider_app/src/presentation/screens/chat/chat_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
@@ -1298,6 +1299,12 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (_job.isAssignedByCompany ||
+                        ProviderSessionService.instance.isCompanyProvider) ...[
+                      _buildCompanyAssignmentCard(),
+                      SizedBox(height: 18.h),
+                    ],
+
                     // 1. Stage Progress Pipeline Card (Auto-updated)
                     _buildStageProgressCard(),
 
@@ -1441,6 +1448,188 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                     fontSize: 12.5.sp,
                     fontWeight: FontWeight.w600,
                     color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_job.isAssignedByCompany ||
+              ProviderSessionService.instance.isCompanyProvider) ...[
+            SizedBox(height: 8.h),
+            Padding(
+              padding: EdgeInsets.only(left: 8.w),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4DE95).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                    color: const Color(0xFFD4DE95).withValues(alpha: 0.4),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.business_rounded,
+                      size: 13.r,
+                      color: const Color(0xFFD4DE95),
+                    ),
+                    SizedBox(width: 5.w),
+                    Text(
+                      'Company Dispatched • ${_job.effectiveCompanyName}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFD4DE95),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompanyAssignmentCard() {
+    final company = _job.effectiveCompanyName;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2C2416), Color(0xFF1E1A11)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(
+          color: const Color(0xFFD4DE95).withValues(alpha: 0.35),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4DE95).withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.business_rounded,
+                  color: Color(0xFFD4DE95),
+                  size: 18,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            company,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14.5.sp,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6.w,
+                            vertical: 2.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4DE95),
+                            borderRadius: BorderRadius.circular(6.r),
+                          ),
+                          child: Text(
+                            'STAFF DISPATCH',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.primaryDark,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      'Assigned Company Work Order',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(12.r),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 14.r,
+                      color: const Color(0xFFD4DE95),
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      'Dispatch Note',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFD4DE95),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  _job.companyDispatchNote ??
+                      'This work order has been assigned to you by $company. Execute standard quoting and service milestones. Client payment will be credited to company payroll.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5.sp,
+                    color: Colors.white.withValues(alpha: 0.85),
+                    height: 1.35,
                   ),
                 ),
               ],

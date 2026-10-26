@@ -12,6 +12,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider_app/src/presentation/blocs/auth/auth_bloc.dart';
 import 'package:provider_app/src/presentation/blocs/auth/auth_event.dart';
 import 'package:provider_app/src/presentation/blocs/auth/auth_state.dart';
+import 'package:provider_app/src/data/services/provider_session_service.dart';
 
 class CountryCode {
   final String flag;
@@ -248,8 +249,16 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
     context.read<AuthBloc>().add(SendOtpRequested(fullNumber));
   }
 
-  void _handleDevBypass() {
-    DevBypassSheet.bypassToHome(context);
+  void _handleDevLoginIndividual() {
+    HapticFeedback.mediumImpact();
+    ProviderSessionService.instance.switchToIndividual();
+    DevBypassSheet.bypassToHome(context, type: ProviderType.individual);
+  }
+
+  void _handleDevLoginCompany() {
+    HapticFeedback.mediumImpact();
+    ProviderSessionService.instance.switchToCompany();
+    DevBypassSheet.bypassToHome(context, type: ProviderType.company);
   }
 
   void _handleDevOptions() {
@@ -725,77 +734,203 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
   }
 
   Widget _buildDevBypassButton() {
+    return _buildDevRoleSelectionSection();
+  }
+
+  Widget _buildDevRoleSelectionSection() {
     return Container(
       width: double.infinity,
-      height: 52.h,
+      padding: EdgeInsets.all(12.r),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(26.r),
+        borderRadius: BorderRadius.circular(22.r),
         border: Border.all(
           color: const Color(0xFFFFB74D),
           width: 1.2,
         ),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(26.r),
-          onTap: _handleDevBypass,
-          onLongPress: _handleDevOptions,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(6.r),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFEDD5),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Icon(
-                    Icons.bolt_rounded,
-                    color: const Color(0xFFEA580C),
-                    size: 18.r,
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(5.r),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEDD5),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Bypass to Home Page (Dev)',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14.5.sp,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFC2410C),
-                        ),
-                      ),
-                      Text(
-                        'Skip login & enter Provider Home Dashboard',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF9A3412),
-                        ),
-                      ),
-                    ],
-                  ),
+                child: Icon(
+                  Icons.bolt_rounded,
+                  color: const Color(0xFFEA580C),
+                  size: 15.r,
                 ),
-                IconButton(
-                  tooltip: 'Dev Screen Jump',
-                  icon: Icon(
-                    Icons.more_horiz_rounded,
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  'DEV LOGIN • SELECT PROVIDER TYPE',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w800,
                     color: const Color(0xFFC2410C),
-                    size: 20.r,
+                    letterSpacing: 0.5,
                   ),
-                  onPressed: _handleDevOptions,
                 ),
-              ],
-            ),
+              ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'More Screen Jumps',
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  color: const Color(0xFFC2410C),
+                  size: 20.r,
+                ),
+                onPressed: _handleDevOptions,
+              ),
+            ],
           ),
-        ),
+          SizedBox(height: 10.h),
+          Row(
+            children: [
+              // Button 1: Individual Provider
+              Expanded(
+                child: Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16.r),
+                    onTap: _handleDevLoginIndividual,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 11.h,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(
+                          color: const Color(0xFF86EFAC),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(5.r),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFDCFCE7),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.person_rounded,
+                                  size: 15.r,
+                                  color: const Color(0xFF16A34A),
+                                ),
+                              ),
+                              SizedBox(width: 6.w),
+                              Expanded(
+                                child: Text(
+                                  'Individual',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13.5.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF166534),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 5.h),
+                          Text(
+                            'Full Unrestricted App',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10.5.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 8.w),
+              // Button 2: Business / Company Provider
+              Expanded(
+                child: Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16.r),
+                    onTap: _handleDevLoginCompany,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 11.h,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(
+                          color: const Color(0xFF93C5FD),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(5.r),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFDBEAFE),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.business_rounded,
+                                  size: 15.r,
+                                  color: const Color(0xFF2563EB),
+                                ),
+                              ),
+                              SizedBox(width: 6.w),
+                              Expanded(
+                                child: Text(
+                                  'Business / Co.',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13.5.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1E40AF),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 5.h),
+                          Text(
+                            'Access Controlled App',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10.5.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

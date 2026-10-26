@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:provider_app/src/data/services/provider_session_service.dart';
 import 'package:provider_app/src/domain/models/job_model.dart';
 import 'package:provider_app/src/presentation/screens/jobs/job_details_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
@@ -513,6 +514,13 @@ class _JobsScreenState extends State<JobsScreen>
       scheduledTimeSlot: '04:30 PM - 06:00 PM',
       latitude: 6.9034 + (_simulatedRequestIndex % 5) * 0.003,
       longitude: 79.8546 + (_simulatedRequestIndex % 5) * 0.003,
+      isCompanyAssigned: ProviderSessionService.instance.isCompanyProvider,
+      assignedCompanyName: ProviderSessionService.instance.isCompanyProvider
+          ? ProviderSessionService.instance.companyName
+          : null,
+      companyDispatchNote: ProviderSessionService.instance.isCompanyProvider
+          ? 'Dispatched by ${ProviderSessionService.instance.companyName}. Customer requested company-verified specialist.'
+          : null,
     );
 
     setState(() {
@@ -572,127 +580,204 @@ class _JobsScreenState extends State<JobsScreen>
     final ongoingCount = _countForCategory(JobCategory.ongoing);
     final finishedCount = _countForCategory(JobCategory.finished);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFBFBFB),
-      body: Column(
-        children: [
-          // Header Section with Dark Olive background & Frosted Glass Tab Bar
-          Container(
-            width: double.infinity,
-            color: AppColors.primaryDark,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 16.h,
-              left: 20.w,
-              right: 20.w,
-              bottom: 18.h,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return AnimatedBuilder(
+      animation: ProviderSessionService.instance,
+      builder: (context, _) {
+        final isCompany = ProviderSessionService.instance.isCompanyProvider;
+        final companyName = ProviderSessionService.instance.companyName;
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFFBFBFB),
+          body: Column(
+            children: [
+              // Header Section with Dark Olive background & Frosted Glass Tab Bar
+              Container(
+                width: double.infinity,
+                color: AppColors.primaryDark,
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 16.h,
+                  left: 20.w,
+                  right: 20.w,
+                  bottom: 18.h,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'My Jobs & Quotes',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 22.sp,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        GestureDetector(
-                          onTap: _simulateJobRequest,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10.w,
-                              vertical: 6.h,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'My Jobs & Quotes',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 22.sp,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -0.2,
+                              ),
                             ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFD4DE95),
-                              borderRadius: BorderRadius.circular(14.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFD4DE95)
-                                      .withValues(alpha: 0.35),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.bolt_rounded,
-                                  color: AppColors.primaryDark,
-                                  size: 14.r,
-                                ),
-                                SizedBox(width: 3.w),
-                                Text(
-                                  'Simulate',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primaryDark,
+                            if (isCompany) ...[
+                              SizedBox(height: 2.h),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.business_rounded,
+                                    size: 12.r,
+                                    color: const Color(0xFFD4DE95),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    '$companyName • Assigned Work Orders',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFFD4DE95),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
                         ),
-                        SizedBox(width: 4.w),
-                        IconButton(
-                          tooltip: 'Refresh',
-                          icon: const Icon(Icons.refresh_rounded,
-                              color: Colors.white70),
-                          onPressed: () {
-                            HapticFeedback.lightImpact();
-                            setState(() {});
-                            DynamicIslandToast.showSuccess(
-                              context,
-                              'Jobs Refreshed',
-                            );
-                          },
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: _simulateJobRequest,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w,
+                                  vertical: 6.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD4DE95),
+                                  borderRadius: BorderRadius.circular(14.r),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFD4DE95)
+                                          .withValues(alpha: 0.35),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.bolt_rounded,
+                                      color: AppColors.primaryDark,
+                                      size: 14.r,
+                                    ),
+                                    SizedBox(width: 3.w),
+                                    Text(
+                                      'Simulate',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 4.w),
+                            IconButton(
+                              tooltip: 'Refresh',
+                              icon: const Icon(Icons.refresh_rounded,
+                                  color: Colors.white70),
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                setState(() {});
+                                DynamicIslandToast.showSuccess(
+                                  context,
+                                  'Jobs Refreshed',
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),
+                    SizedBox(height: 14.h),
+
+                    // Stage Categories in Tile View (2-Row Responsive Grid)
+                    _buildCategoryTileView(
+                      toQuoteCount: toQuoteCount,
+                      pendingCount: pendingCount,
+                      toStartCount: toStartCount,
+                      ongoingCount: ongoingCount,
+                      finishedCount: finishedCount,
+                    ),
                   ],
                 ),
-                SizedBox(height: 14.h),
+              ),
 
-                // Stage Categories in Tile View (2-Row Responsive Grid)
-                _buildCategoryTileView(
-                  toQuoteCount: toQuoteCount,
-                  pendingCount: pendingCount,
-                  toStartCount: toStartCount,
-                  ongoingCount: ongoingCount,
-                  finishedCount: finishedCount,
+              // Company Dispatch Banner for Business staff
+              if (isCompany)
+                Container(
+                  width: double.infinity,
+                  margin: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 0),
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3E8FF),
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(
+                      color: const Color(0xFFD8B4FE),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(5.r),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF7E22CE),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.corporate_fare_rounded,
+                          size: 13.r,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(width: 9.w),
+                      Expanded(
+                        child: Text(
+                          'Company Assigned Only: You receive jobs dispatched exclusively by $companyName.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF6B21A8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
 
-          // Search Bar
-          _buildSearchBar(),
+              // Search Bar
+              _buildSearchBar(),
 
-          // Content TabBarView with Summarized Cards
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildJobsList(JobCategory.toQuote),
-                _buildJobsList(JobCategory.pendingApprove),
-                _buildJobsList(JobCategory.toStart),
-                _buildJobsList(JobCategory.ongoing),
-                _buildJobsList(JobCategory.finished),
-              ],
-            ),
+              // Content TabBarView with Summarized Cards
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildJobsList(JobCategory.toQuote),
+                    _buildJobsList(JobCategory.pendingApprove),
+                    _buildJobsList(JobCategory.toStart),
+                    _buildJobsList(JobCategory.ongoing),
+                    _buildJobsList(JobCategory.finished),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1746,6 +1831,41 @@ class _JobsScreenState extends State<JobsScreen>
                 ),
               ],
             ),
+
+            if (job.isAssignedByCompany ||
+                ProviderSessionService.instance.isCompanyProvider) ...[
+              SizedBox(height: 7.h),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3E8FF),
+                  borderRadius: BorderRadius.circular(6.r),
+                  border: Border.all(
+                    color: const Color(0xFFD8B4FE),
+                    width: 0.9,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.business_rounded,
+                      size: 12.r,
+                      color: const Color(0xFF7E22CE),
+                    ),
+                    SizedBox(width: 5.w),
+                    Text(
+                      'Assigned by ${job.effectiveCompanyName}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF6B21A8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             SizedBox(height: 10.h),
 

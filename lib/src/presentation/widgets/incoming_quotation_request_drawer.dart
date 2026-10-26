@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:provider_app/src/data/services/provider_session_service.dart';
 import 'package:provider_app/src/domain/models/job_model.dart';
 import 'package:provider_app/src/presentation/screens/jobs/job_details_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
@@ -357,6 +358,44 @@ class _IncomingQuotationRequestDrawerState
                       ),
                     ),
                   ),
+                  if (widget.job.isAssignedByCompany ||
+                      ProviderSessionService.instance.isCompanyProvider) ...[
+                    SizedBox(width: 6.w),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 6.w,
+                        vertical: 3.5.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E8FF),
+                        borderRadius: BorderRadius.circular(6.r),
+                        border: Border.all(
+                          color: const Color(0xFFD8B4FE),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.business_rounded,
+                            size: 10.r,
+                            color: const Color(0xFF7E22CE),
+                          ),
+                          SizedBox(width: 3.w),
+                          Text(
+                            'CO. DISPATCH',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF6B21A8),
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
               GestureDetector(
@@ -836,6 +875,68 @@ class _IncomingQuotationRequestDrawerState
                       ),
                     ),
                     SizedBox(height: 12.h),
+
+                    if (widget.job.isAssignedByCompany ||
+                        ProviderSessionService.instance.isCompanyProvider) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 10.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAF5FF),
+                          borderRadius: BorderRadius.circular(14.r),
+                          border: Border.all(
+                            color: const Color(0xFFE9D5FF),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(6.r),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF7E22CE),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.corporate_fare_rounded,
+                                size: 14.r,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(width: 10.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Dispatched by ${widget.job.effectiveCompanyName}',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12.5.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF6B21A8),
+                                    ),
+                                  ),
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    widget.job.companyDispatchNote ??
+                                        'Directly assigned to you. Prepare and submit your quote to the customer.',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF7E22CE),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     // Customer Information & Rating Card
                     Container(

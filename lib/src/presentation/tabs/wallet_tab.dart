@@ -6,6 +6,7 @@ import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/data/services/payout_service.dart';
 import 'package:provider_app/src/presentation/screens/payout/bank_payout_details_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
+import 'package:provider_app/src/data/services/provider_session_service.dart';
 
 class WalletTab extends StatefulWidget {
   const WalletTab({super.key});
@@ -159,18 +160,24 @@ class _WalletTabState extends State<WalletTab> {
   }
 
   List<Map<String, dynamic>> get _filteredTransactions {
+    List<Map<String, dynamic>> list = _transactions;
+    if (ProviderSessionService.instance.isCompanyProvider) {
+      list = list
+          .where((t) => t['type'] != 'fee' && t['type'] != 'payout')
+          .toList();
+    }
     if (_selectedFilter == 'Earnings') {
-      return _transactions.where((t) => t['type'] == 'earning').toList();
+      return list.where((t) => t['type'] == 'earning').toList();
     } else if (_selectedFilter == 'Payouts') {
-      return _transactions.where((t) => t['type'] == 'payout').toList();
+      return list.where((t) => t['type'] == 'payout').toList();
     } else if (_selectedFilter == 'Platform Fees') {
-      return _transactions
+      return list
           .where((t) => t['type'] == 'fee' || (t['platformFee'] ?? 0.0) > 0)
           .toList();
     } else if (_selectedFilter == 'Extras') {
-      return _transactions.where((t) => t['type'] == 'extra').toList();
+      return list.where((t) => t['type'] == 'extra').toList();
     }
-    return _transactions;
+    return list;
   }
 
   void _settlePlatformFees() {
@@ -475,6 +482,10 @@ class _WalletTabState extends State<WalletTab> {
 
   void _openWithdrawModal() {
     HapticFeedback.mediumImpact();
+    if (!ProviderSessionService.instance.canWithdrawMoney) {
+      _showCompanyWithdrawalInfo(context);
+      return;
+    }
     final TextEditingController amountController = TextEditingController();
 
     showModalBottomSheet(
@@ -1426,168 +1437,271 @@ class _WalletTabState extends State<WalletTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F8F3),
-      appBar: AppBar(
-        backgroundColor: AppColors.darkHeaderBg,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Text(
-          'Wallet & Payouts',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 19.sp,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-            letterSpacing: -0.2,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.receipt_long_rounded,
-              color: Color(0xFFD4DE95),
-            ),
-            tooltip: 'Statements',
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              DynamicIslandToast.showSuccess(
-                context,
-                'Monthly Statement generated',
-              );
-            },
-          ),
-          SizedBox(width: 8.w),
-        ],
-      ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 120.h),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ─── 1. HERO BALANCE CARD ──────────────────────────────────────
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(20.w),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primaryDark,
-                    AppColors.primary,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(24.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryDark.withValues(alpha: 0.25),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+    return AnimatedBuilder(
+      animation: ProviderSessionService.instance,
+      builder: (context, _) {
+        final isCompany = ProviderSessionService.instance.isCompanyProvider;
+        return Scaffold(
+          backgroundColor: const Color(0xFFF7F8F3),
+          appBar: AppBar(
+            backgroundColor: AppColors.darkHeaderBg,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: Text(
+              isCompany ? 'My Earnings' : 'Wallet & Payouts',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 19.sp,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: -0.2,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 8.r,
-                            height: 8.r,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFD4DE95),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'Available Balance',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFBAC095),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 4.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.account_balance_rounded,
-                              color: Colors.white70,
-                              size: 13.r,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              'Commercial Bank ••4291',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(
+                  Icons.receipt_long_rounded,
+                  color: Color(0xFFD4DE95),
+                ),
+                tooltip: 'Statements',
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  DynamicIslandToast.showSuccess(
+                    context,
+                    'Monthly Statement generated',
+                  );
+                },
+              ),
+              SizedBox(width: 8.w),
+            ],
+          ),
+          body: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 120.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ─── 1. HERO BALANCE CARD ──────────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(20.w),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primaryDark,
+                        AppColors.primary,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(24.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryDark.withValues(alpha: 0.25),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                  SizedBox(height: 12.h),
-
-                  Text(
-                    'LKR ${_availableBalance.toStringAsFixed(2)}',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 34.sp,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  SizedBox(height: 18.h),
-
-                  // Quick Action Button Inside Hero Card
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD4DE95),
-                        foregroundColor: AppColors.primaryDark,
-                        elevation: 0,
-                        padding: EdgeInsets.symmetric(vertical: 13.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 8.r,
+                                height: 8.r,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFD4DE95),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                isCompany ? 'Earned Revenue' : 'Available Balance',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFBAC095),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (!isCompany)
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8.w,
+                                vertical: 4.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.account_balance_rounded,
+                                    color: Colors.white70,
+                                    size: 13.r,
+                                  ),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Commercial Bank ••4291',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8.w,
+                                vertical: 4.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDCFCE7).withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8.r),
+                                border: Border.all(
+                                  color: const Color(0xFF86EFAC).withValues(alpha: 0.5),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.business_rounded,
+                                    color: const Color(0xFFD4DE95),
+                                    size: 13.r,
+                                  ),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Apex Home Solutions • Staff',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
-                      onPressed: _openWithdrawModal,
-                      icon: Icon(
-                        Icons.arrow_outward_rounded,
-                        size: 18.r,
-                        color: AppColors.primaryDark,
-                      ),
-                      label: Text(
-                        'Withdraw Funds',
+                      SizedBox(height: 12.h),
+
+                      Text(
+                        'LKR ${_availableBalance.toStringAsFixed(2)}',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 34.sp,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                    ),
+                      SizedBox(height: 18.h),
+
+                      // Quick Action Button / Notice Inside Hero Card
+                      if (ProviderSessionService.instance.canWithdrawMoney)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFD4DE95),
+                              foregroundColor: AppColors.primaryDark,
+                              elevation: 0,
+                              padding: EdgeInsets.symmetric(vertical: 13.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14.r),
+                              ),
+                            ),
+                            onPressed: _openWithdrawModal,
+                            icon: Icon(
+                              Icons.arrow_outward_rounded,
+                              size: 18.r,
+                              color: AppColors.primaryDark,
+                            ),
+                            label: Text(
+                              'Withdraw Funds',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 11.h),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(14.r),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.lock_rounded,
+                                size: 17.r,
+                                color: const Color(0xFFD4DE95),
+                              ),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Company Managed Payroll',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Direct withdrawals disabled • Paid via Apex Home Solutions',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 10.5.sp,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(
+                                height: 30.h,
+                                child: TextButton(
+                                  onPressed: () => _showCompanyWithdrawalInfo(context),
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: const Color(0xFFD4DE95),
+                                    foregroundColor: AppColors.primaryDark,
+                                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.r),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Info',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11.5.sp,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
 
             SizedBox(height: 16.h),
 
@@ -1682,10 +1796,12 @@ class _WalletTabState extends State<WalletTab> {
               ],
             ),
 
-            SizedBox(height: 16.h),
+            if (!isCompany) ...[
+              SizedBox(height: 16.h),
 
-            // ─── 3. ADMIN PLATFORM FEES (CASH PAYMENTS) CARD ───────────────
-            _buildPlatformFeesCard(),
+              // ─── 3. ADMIN PLATFORM FEES (CASH PAYMENTS) CARD ───────────────
+              _buildPlatformFeesCard(),
+            ],
 
             SizedBox(height: 20.h),
 
@@ -1718,13 +1834,16 @@ class _WalletTabState extends State<WalletTab> {
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               child: Row(
-                children: [
-                  'All',
-                  'Earnings',
-                  'Payouts',
-                  'Platform Fees',
-                  'Extras'
-                ].map((filter) {
+                children: (isCompany
+                        ? ['All', 'Earnings', 'Extras']
+                        : [
+                            'All',
+                            'Earnings',
+                            'Payouts',
+                            'Platform Fees',
+                            'Extras'
+                          ])
+                    .map((filter) {
                   final bool isSelected = _selectedFilter == filter;
                   return GestureDetector(
                     onTap: () {
@@ -1897,10 +2016,101 @@ class _WalletTabState extends State<WalletTab> {
                   ),
                 );
               },
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
+      );
+    },
+  );
+}
+
+  void _showCompanyWithdrawalInfo(BuildContext context) {
+    HapticFeedback.lightImpact();
+    final company = ProviderSessionService.instance.companyName;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+          ),
+          padding: EdgeInsets.fromLTRB(22.w, 16.h, 22.w, 32.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E4DE),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
+              SizedBox(height: 18.h),
+              Container(
+                width: 56.r,
+                height: 56.r,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFBFDBFE), width: 1.5),
+                ),
+                child: Icon(
+                  Icons.lock_rounded,
+                  color: const Color(0xFF2563EB),
+                  size: 26.r,
+                ),
+              ),
+              SizedBox(height: 14.h),
+              Text(
+                'Personal Withdrawals Restricted',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textHeadline,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'As a Service Provider employed under $company, you have an access-controlled service provider account. You can view your earned money from completed jobs, but cannot initiate direct bank withdrawals.\n\nAll job earnings are logged and disbursed through your company\'s central corporate payroll.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.sp,
+                  height: 1.45,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              SizedBox(height: 20.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                  ),
+                  child: Text(
+                    'Understood',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

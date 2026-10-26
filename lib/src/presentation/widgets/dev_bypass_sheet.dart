@@ -5,7 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/living_details_screen.dart';
-import 'package:provider_app/src/presentation/screens/auth/provider_details_screen.dart';
+import 'package:provider_app/src/presentation/screens/auth/provider_details_screen.dart'
+    hide ProviderType;
 import 'package:provider_app/src/presentation/screens/auth/service_assignment_screen.dart';
 import 'package:provider_app/src/presentation/screens/auth/under_review_screen.dart';
 import 'package:provider_app/src/presentation/screens/auth/verification_screen.dart';
@@ -13,13 +14,18 @@ import 'package:provider_app/src/presentation/screens/home/home_screen.dart';
 import 'package:provider_app/src/domain/models/job_model.dart';
 import 'package:provider_app/src/presentation/screens/jobs/job_details_screen.dart';
 import 'package:provider_app/src/presentation/widgets/incoming_quotation_request_drawer.dart';
+import 'package:provider_app/src/data/services/provider_session_service.dart';
 
 /// Modal bottom sheet and helpers for bypassing authentication and wizards during development.
 class DevBypassSheet {
   static const String defaultTestPhone = '+94 77 123 4567';
 
-  static void bypassToHome(BuildContext context) {
+  static void bypassToHome(
+    BuildContext context, {
+    ProviderType type = ProviderType.individual,
+  }) {
     HapticFeedback.mediumImpact();
+    ProviderSessionService.instance.setProviderType(type);
     Navigator.of(context).push(
       CupertinoPageRoute(
         builder: (context) => const HomeScreen(),
@@ -268,13 +274,24 @@ class DevBypassSheet {
                   ),
                   SizedBox(height: 16.h),
                   _buildOptionTile(
-                    icon: Icons.home_rounded,
-                    title: 'Home Page (Provider Dashboard)',
-                    subtitle: 'Direct bypass to main application home',
+                    icon: Icons.person_rounded,
+                    title: 'Individual Provider (Full App)',
+                    subtitle: 'Full access: direct jobs, withdrawals, licence & bank setup',
                     isPrimary: true,
                     onTap: () {
                       Navigator.pop(bottomSheetContext);
-                      bypassToHome(context);
+                      bypassToHome(context, type: ProviderType.individual);
+                    },
+                  ),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildOptionTile(
+                    icon: Icons.business_rounded,
+                    title: 'Company Provider (Access Controlled)',
+                    subtitle: 'Company-assigned jobs, view earnings only, no withdrawal/KYC',
+                    isPrimary: true,
+                    onTap: () {
+                      Navigator.pop(bottomSheetContext);
+                      bypassToHome(context, type: ProviderType.company);
                     },
                   ),
                   Divider(height: 1, color: Colors.grey.shade200),

@@ -20,6 +20,7 @@ import 'package:provider_app/src/data/services/verification_service.dart';
 import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 import 'package:provider_app/src/presentation/widgets/incoming_quotation_request_drawer.dart';
+import 'package:provider_app/src/data/services/provider_session_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -226,13 +227,22 @@ class _HomeScreenState extends State<HomeScreen>
       scheduledTimeSlot: '04:30 PM - 06:00 PM',
       latitude: 6.9034 + offset,
       longitude: 79.8546 + offset,
+      isCompanyAssigned: ProviderSessionService.instance.isCompanyProvider,
+      assignedCompanyName: ProviderSessionService.instance.isCompanyProvider
+          ? ProviderSessionService.instance.companyName
+          : null,
+      companyDispatchNote: ProviderSessionService.instance.isCompanyProvider
+          ? 'Dispatched to you by supervisor at ${ProviderSessionService.instance.companyName}'
+          : null,
     );
 
     _isIncomingDrawerOpen = true;
 
     DynamicIslandToast.showSuccess(
       context,
-      'New Incoming Request: ${newJob.serviceTitle}',
+      ProviderSessionService.instance.isCompanyProvider
+          ? 'Company Assigned Job: ${newJob.serviceTitle}'
+          : 'New Incoming Request: ${newJob.serviceTitle}',
     );
 
     // Pop up full interactive map drawer to display order
@@ -346,7 +356,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _onTabSelected(int index) {
-    if ((index == 1 || index == 2) && !VerificationService.instance.isApproved) {
+    if ((index == 1 || index == 2) &&
+        ProviderSessionService.instance.requiresLicenceVerification &&
+        !VerificationService.instance.isApproved) {
       _showVerificationLockedModal(
         context,
         pageName: index == 1 ? 'Jobs' : 'Wallet',
@@ -641,7 +653,10 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: VerificationService.instance,
+      animation: Listenable.merge([
+        VerificationService.instance,
+        ProviderSessionService.instance,
+      ]),
       builder: (context, _) {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle.light.copyWith(
@@ -833,6 +848,10 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildVerificationStatusBanner() {
+    if (ProviderSessionService.instance.isCompanyProvider) {
+      return _buildCompanyAffiliationBanner();
+    }
+
     final service = VerificationService.instance;
     final status = service.status;
 
@@ -1001,6 +1020,96 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildCompanyAffiliationBanner() {
+    final company = ProviderSessionService.instance.companyName;
+    final staffId = ProviderSessionService.instance.staffId;
+
+    return Container(
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: const Color(0xFF86EFAC), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8.r),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.business_rounded,
+              color: const Color(0xFF16A34A),
+              size: 20.r,
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(6.r),
+                      ),
+                      child: Text(
+                        'COMPANY AFFILIATED',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 9.5.sp,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF166534),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      'Staff ID: $staffId',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 3.h),
+                Text(
+                  company,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textHeadline,
+                  ),
+                ),
+                Text(
+                  'Access Controlled • Company Dispatched Jobs Only',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTopHeader() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -1046,8 +1155,8 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   // Avatar
                   Container(
-                    width: 48.r,
-                    height: 48.r,
+                    width: 44.r,
+                    height: 44.r,
                     decoration: BoxDecoration(
                       color: AppColors.sage,
                       shape: BoxShape.circle,
@@ -1060,116 +1169,87 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Text(
                         'AP',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 18.sp,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w800,
                           color: AppColors.primaryDark,
                         ),
                       ),
                     ),
                   ),
-                  SizedBox(width: 12.w),
+                  SizedBox(width: 10.w),
 
-                  // Greeting & Pro Badge
+                  // Greeting & Role Badge
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Flexible(
                               child: Text(
                                 'Alex Perera',
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 18.sp,
+                                  fontSize: 16.sp,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white,
                                 ),
                               ),
                             ),
-                            SizedBox(width: 6.w),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 6.w,
-                                vertical: 2.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD4DE95),
-                                borderRadius: BorderRadius.circular(6.r),
-                              ),
-                              child: Text(
-                                'PRO',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.primaryDark,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 6.w),
-                            // Verification Status Pill in Top Header
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const LicenseVerificationScreen(),
-                                  ),
-                                );
-                              },
-                              child: Container(
+                            SizedBox(width: 5.w),
+                            if (ProviderSessionService.instance.isIndividual) ...[
+                              Container(
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: 6.w,
-                                  vertical: 2.h,
+                                  horizontal: 5.w,
+                                  vertical: 1.5.h,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: VerificationService.instance.isApproved
-                                      ? AppColors.accentLime
-                                      : VerificationService.instance.status.backgroundColor,
-                                  borderRadius: BorderRadius.circular(6.r),
-                                  border: Border.all(
-                                    color: VerificationService.instance.status.color
-                                        .withValues(alpha: 0.35),
+                                  color: const Color(0xFFD4DE95),
+                                  borderRadius: BorderRadius.circular(5.r),
+                                ),
+                                child: Text(
+                                  'PRO',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 9.sp,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.primaryDark,
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      VerificationService.instance.isApproved
-                                          ? Icons.check_circle_rounded
-                                          : (VerificationService.instance.status ==
-                                                  VerificationStatus.pending
-                                              ? Icons.schedule_rounded
-                                              : Icons.error_outline_rounded),
-                                      size: 10.r,
-                                      color: VerificationService.instance.isApproved
-                                          ? AppColors.primaryDark
-                                          : VerificationService.instance.status.color,
-                                    ),
-                                    SizedBox(width: 3.w),
-                                    Text(
-                                      VerificationService.instance.status.badgeText,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 9.5.sp,
-                                        fontWeight: FontWeight.w800,
-                                        color: VerificationService.instance.isApproved
-                                            ? AppColors.primaryDark
-                                            : VerificationService.instance.status.color,
-                                      ),
-                                    ),
-                                  ],
+                              ),
+                            ] else ...[
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 5.w,
+                                  vertical: 1.5.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(5.r),
+                                ),
+                                child: Text(
+                                  'APEX STAFF',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 8.5.sp,
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFF166534),
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                         SizedBox(height: 2.h),
                         Text(
-                          'Handyman & Electrical Specialist',
+                          ProviderSessionService.instance.isCompanyProvider
+                              ? '${ProviderSessionService.instance.companyName} • Staff'
+                              : 'Handyman & Electrical Specialist',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12.sp,
+                            fontSize: 11.sp,
                             fontWeight: FontWeight.w500,
                             color: Colors.white70,
                           ),
@@ -1178,22 +1258,64 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
 
+                  SizedBox(width: 6.w),
+
+                  // Dev Mode Quick Switcher Button (Compact Circular)
+                  if (kDebugMode || !kReleaseMode) ...[
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ProviderSessionService.instance.toggleProviderType();
+                        DynamicIslandToast.showSuccess(
+                          context,
+                          ProviderSessionService.instance.isCompanyProvider
+                              ? 'Switched to Company Provider (Access Controlled)'
+                              : 'Switched to Individual Provider (Full Access)',
+                        );
+                      },
+                      child: Container(
+                        width: 36.r,
+                        height: 36.r,
+                        decoration: BoxDecoration(
+                          color: ProviderSessionService.instance.isCompanyProvider
+                              ? const Color(0xFF1E40AF)
+                              : const Color(0xFF166534),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            ProviderSessionService.instance.isCompanyProvider
+                                ? Icons.business_rounded
+                                : Icons.person_rounded,
+                            color: Colors.white,
+                            size: 16.r,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 6.w),
+                  ],
+
                   // Dev Simulate Request Button
                   GestureDetector(
                     onTap: _simulateIncomingJobRequest,
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 7.h,
+                        horizontal: 9.w,
+                        vertical: 6.h,
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFD4DE95),
-                        borderRadius: BorderRadius.circular(16.r),
+                        borderRadius: BorderRadius.circular(14.r),
                         boxShadow: [
                           BoxShadow(
-                            color:
-                                const Color(0xFFD4DE95).withValues(alpha: 0.35),
-                            blurRadius: 8,
+                            color: const Color(0xFFD4DE95)
+                                .withValues(alpha: 0.35),
+                            blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
                         ],
@@ -1204,13 +1326,13 @@ class _HomeScreenState extends State<HomeScreen>
                           Icon(
                             Icons.bolt_rounded,
                             color: AppColors.primaryDark,
-                            size: 15.r,
+                            size: 14.r,
                           ),
-                          SizedBox(width: 3.w),
+                          SizedBox(width: 2.w),
                           Text(
                             'Simulate',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11.5.sp,
+                              fontSize: 11.sp,
                               fontWeight: FontWeight.w800,
                               color: AppColors.primaryDark,
                             ),
@@ -1219,14 +1341,14 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                   ),
-                  SizedBox(width: 8.w),
+                  SizedBox(width: 6.w),
 
                   // Bell Notification Icon
                   GestureDetector(
                     onTap: () => _onTabSelected(2),
                     child: Container(
-                      width: 42.r,
-                      height: 42.r,
+                      width: 38.r,
+                      height: 38.r,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
@@ -1234,7 +1356,7 @@ class _HomeScreenState extends State<HomeScreen>
                       child: const Icon(
                         Icons.notifications_none_rounded,
                         color: Colors.white,
-                        size: 22,
+                        size: 20,
                       ),
                     ),
                   ),
@@ -1443,32 +1565,33 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-          ElevatedButton.icon(
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              DynamicIslandToast.showSuccess(
-                context,
-                'Payout initiated: LKR 180.00',
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD4DE95),
-              foregroundColor: AppColors.primaryDark,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14.r),
+          if (ProviderSessionService.instance.canWithdrawMoney)
+            ElevatedButton.icon(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                DynamicIslandToast.showSuccess(
+                  context,
+                  'Payout initiated: LKR 180.00',
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4DE95),
+                foregroundColor: AppColors.primaryDark,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
               ),
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-            ),
-            icon: const Icon(Icons.account_balance_wallet_outlined, size: 16),
-            label: Text(
-              'Payout',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.5.sp,
-                fontWeight: FontWeight.w800,
+              icon: const Icon(Icons.account_balance_wallet_outlined, size: 16),
+              label: Text(
+                'Payout',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5.sp,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -2389,7 +2512,9 @@ class _HomeScreenState extends State<HomeScreen>
   }) {
     final bool isSelected = _currentIndex == index;
     final bool isLocked =
-        (index == 1 || index == 2) && !VerificationService.instance.isApproved;
+        (index == 1 || index == 2) &&
+        ProviderSessionService.instance.requiresLicenceVerification &&
+        !VerificationService.instance.isApproved;
     final Color activeColor = AppColors.primary;
     final Color inactiveColor =
         isLocked ? const Color(0xFFB4B9AC) : const Color(0xFF9CA09A);

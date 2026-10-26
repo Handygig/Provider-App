@@ -194,6 +194,9 @@ class JobModel {
   final String? scheduledTimeSlot;
   final double? latitude;
   final double? longitude;
+  final bool isCompanyAssigned;
+  final String? assignedCompanyName;
+  final String? companyDispatchNote;
 
   JobModel({
     required this.id,
@@ -225,7 +228,13 @@ class JobModel {
     this.scheduledTimeSlot,
     this.latitude,
     this.longitude,
+    this.isCompanyAssigned = false,
+    this.assignedCompanyName,
+    this.companyDispatchNote,
   });
+
+  bool get isAssignedByCompany => isCompanyAssigned || assignedCompanyName != null;
+  String get effectiveCompanyName => assignedCompanyName ?? 'Apex Home Solutions Pvt Ltd';
 
   double get effectiveLatitude => latitude ?? 6.9034;
   double get effectiveLongitude => longitude ?? 79.8546;

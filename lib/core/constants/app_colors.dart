@@ -4,7 +4,7 @@ class AppColors {
   AppColors._();
 
   // Brand Palette Hex Codes
-  // #636B2F - Olive Primary
+  // #fafbf0ff - Olive Primary
   // #BAC095 - Soft Sage Muted
   // #D4DE95 - Bright Lime Accent
   // #3D4127 - Deep Dark Olive
