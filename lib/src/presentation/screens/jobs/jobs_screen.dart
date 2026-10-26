@@ -604,50 +604,61 @@ class _JobsScreenState extends State<JobsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'My Jobs & Quotes',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 22.sp,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: -0.2,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'My Jobs & Quotes',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 22.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -0.2,
+                                ),
                               ),
-                            ),
-                            if (isCompany) ...[
-                              SizedBox(height: 2.h),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.business_rounded,
-                                    size: 12.r,
-                                    color: const Color(0xFFD4DE95),
-                                  ),
-                                  SizedBox(width: 4.w),
-                                  Text(
-                                    '$companyName • Assigned Work Orders',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w600,
+                              if (isCompany) ...[
+                                SizedBox(height: 2.h),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.business_rounded,
+                                      size: 12.r,
                                       color: const Color(0xFFD4DE95),
                                     ),
-                                  ),
-                                ],
-                              ),
+                                    SizedBox(width: 4.w),
+                                    Flexible(
+                                      child: Text(
+                                        '$companyName • Work Orders',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFFD4DE95),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
+                        SizedBox(width: 8.w),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             GestureDetector(
                               onTap: _simulateJobRequest,
                               child: Container(
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w,
+                                  horizontal: 9.w,
                                   vertical: 6.h,
                                 ),
                                 decoration: BoxDecoration(
@@ -670,7 +681,7 @@ class _JobsScreenState extends State<JobsScreen>
                                       color: AppColors.primaryDark,
                                       size: 14.r,
                                     ),
-                                    SizedBox(width: 3.w),
+                                    SizedBox(width: 2.w),
                                     Text(
                                       'Simulate',
                                       style: GoogleFonts.plusJakartaSans(
@@ -683,11 +694,20 @@ class _JobsScreenState extends State<JobsScreen>
                                 ),
                               ),
                             ),
-                            SizedBox(width: 4.w),
+                            SizedBox(width: 2.w),
                             IconButton(
                               tooltip: 'Refresh',
-                              icon: const Icon(Icons.refresh_rounded,
-                                  color: Colors.white70),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: BoxConstraints.tightFor(
+                                width: 34.r,
+                                height: 34.r,
+                              ),
+                              icon: const Icon(
+                                Icons.refresh_rounded,
+                                color: Colors.white70,
+                                size: 20,
+                              ),
                               onPressed: () {
                                 HapticFeedback.lightImpact();
                                 setState(() {});
@@ -1606,7 +1626,6 @@ class _JobsScreenState extends State<JobsScreen>
   // REDESIGNED SIMPLE & CLEAN SERVICE CARD WITH SEE DETAILS BUTTON
   // ---------------------------------------------------------------------------
   Widget _buildSummarizedJobCard(JobModel job) {
-    final int currentStep = job.status.index; // 0: To Quote, 1: Pending, 2: Ongoing, 3: Finished
     final bool hasQuoted = job.quotedAmount != null;
     final String? priceText;
     final String? priceLabel;
@@ -1638,15 +1657,6 @@ class _JobsScreenState extends State<JobsScreen>
       priceLabel = null;
       priceText = null;
     }
-
-    final initials = job.customerName
-        .trim()
-        .split(' ')
-        .map((e) => e.isNotEmpty ? e[0] : '')
-        .take(2)
-        .join();
-
-    final isCash = job.paymentMethod.toLowerCase().contains('cash');
 
     return GestureDetector(
       onTap: () => _openJobDetails(job),
@@ -1832,189 +1842,97 @@ class _JobsScreenState extends State<JobsScreen>
               ],
             ),
 
-            if (job.isAssignedByCompany ||
-                ProviderSessionService.instance.isCompanyProvider) ...[
-              SizedBox(height: 7.h),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.5.h),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3E8FF),
-                  borderRadius: BorderRadius.circular(6.r),
-                  border: Border.all(
-                    color: const Color(0xFFD8B4FE),
-                    width: 0.9,
+            SizedBox(height: 8.h),
+
+            // ─── 3. Customer & Location Line ─────────────────────────────
+            Row(
+              children: [
+                Icon(
+                  Icons.person_outline_rounded,
+                  size: 14.r,
+                  color: AppColors.textSecondary,
+                ),
+                SizedBox(width: 4.w),
+                Flexible(
+                  child: Text(
+                    job.customerName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textHeadline,
+                    ),
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.business_rounded,
-                      size: 12.r,
-                      color: const Color(0xFF7E22CE),
+                SizedBox(width: 6.w),
+                Container(
+                  width: 3.r,
+                  height: 3.r,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFBAC095),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                SizedBox(width: 6.w),
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 13.r,
+                  color: AppColors.textMuted,
+                ),
+                SizedBox(width: 2.w),
+                Flexible(
+                  child: Text(
+                    job.distance,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
                     ),
-                    SizedBox(width: 5.w),
-                    Text(
-                      'Assigned by ${job.effectiveCompanyName}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF6B21A8),
+                  ),
+                ),
+                if (job.isAssignedByCompany ||
+                    ProviderSessionService.instance.isCompanyProvider) ...[
+                  const Spacer(),
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3E8FF),
+                      borderRadius: BorderRadius.circular(6.r),
+                      border: Border.all(
+                        color: const Color(0xFFD8B4FE),
+                        width: 0.8,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ],
-
-            SizedBox(height: 10.h),
-
-            // ─── 3. Unified Customer, Location & Payment Info ────────────
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8F9F3),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: const Color(0xFFE9ECE0),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                children: [
-                  // Customer & Distance Row
-                  Row(
-                    children: [
-                      Container(
-                        width: 24.r,
-                        height: 24.r,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.business_rounded,
+                          size: 10.r,
+                          color: const Color(0xFF7E22CE),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          initials.isNotEmpty ? initials : 'C',
+                        SizedBox(width: 3.w),
+                        Text(
+                          'Company Assigned',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(
-                          job.customerName,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12.5.sp,
+                            fontSize: 9.5.sp,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textHeadline,
+                            color: const Color(0xFF6B21A8),
                           ),
                         ),
-                      ),
-                      // Rating
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.star_rounded,
-                            size: 13.r,
-                            color: const Color(0xFFD97706),
-                          ),
-                          SizedBox(width: 2.w),
-                          Text(
-                            job.customerRating.toStringAsFixed(1),
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFFB45309),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(width: 6.w),
-                      Text(
-                        '• ${job.distance}',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 6.h),
-
-                  // Location
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 13.r,
-                        color: AppColors.primary,
-                      ),
-                      SizedBox(width: 4.w),
-                      Expanded(
-                        child: Text(
-                          job.address,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.5.sp,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 5.h),
-
-                  // Payment Method
-                  Row(
-                    children: [
-                      Icon(
-                        isCash
-                            ? Icons.payments_outlined
-                            : Icons.credit_card_outlined,
-                        size: 13.r,
-                        color: AppColors.primary,
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        'Payment: ',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                      Text(
-                        job.paymentMethod,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textHeadline,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
-              ),
+              ],
             ),
 
-            SizedBox(height: 10.h),
-
-            // ─── 4. Sleek Progress Stepper Bar ───────────────────────────
-            _buildCardServiceStatusMap(job, currentStep),
-
-            SizedBox(height: 10.h),
-
-            // ─── 5. Divider ──────────────────────────────────────────────
+            SizedBox(height: 12.h),
             const Divider(height: 1, color: Color(0xFFEFF2E5)),
-
             SizedBox(height: 10.h),
 
             // ─── 6. Footer: Pricing & Action Buttons ─────────────────────
@@ -2237,62 +2155,6 @@ class _JobsScreenState extends State<JobsScreen>
           ],
         ),
       ),
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // SLEEK MINIMAL PROGRESS INDICATOR
-  // ---------------------------------------------------------------------------
-  Widget _buildCardServiceStatusMap(JobModel job, int currentStep) {
-    const stageNames = ['Quote', 'Approval', 'To Start', 'Ongoing', 'Finished'];
-    final activeStageName = stageNames[currentStep.clamp(0, 4)];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Progress',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 10.5.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMuted,
-              ),
-            ),
-            Text(
-              'Stage ${currentStep + 1} of 5 • $activeStageName',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 10.5.sp,
-                fontWeight: FontWeight.w700,
-                color: job.status.color,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 5.h),
-        Row(
-          children: List.generate(5, (index) {
-            final isPassed = index < currentStep;
-            final isCurrent = index == currentStep;
-            final isFilled = isPassed || isCurrent;
-
-            return Expanded(
-              child: Container(
-                height: 4.h,
-                margin: EdgeInsets.only(right: index < 4 ? 4.w : 0),
-                decoration: BoxDecoration(
-                  color: isFilled
-                      ? (isCurrent ? job.status.color : const Color(0xFF16A34A))
-                      : const Color(0xFFE5E7EB),
-                  borderRadius: BorderRadius.circular(3.r),
-                ),
-              ),
-            );
-          }),
-        ),
-      ],
     );
   }
 
