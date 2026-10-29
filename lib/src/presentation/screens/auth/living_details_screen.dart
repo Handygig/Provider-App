@@ -12,8 +12,6 @@ class LivingDetailsScreen extends StatefulWidget {
   final String phoneNumber;
   final String email;
   final String providerType;
-  final String? regNumber;
-  final String? taxId;
 
   const LivingDetailsScreen({
     super.key,
@@ -22,8 +20,6 @@ class LivingDetailsScreen extends StatefulWidget {
     required this.phoneNumber,
     required this.email,
     required this.providerType,
-    this.regNumber,
-    this.taxId,
   });
 
   @override
@@ -171,8 +167,6 @@ class _LivingDetailsScreenState extends State<LivingDetailsScreen>
           phoneNumber: widget.phoneNumber,
           email: widget.email,
           providerType: widget.providerType,
-          regNumber: widget.regNumber,
-          taxId: widget.taxId,
           addressLine1: _addressLine1Controller.text.trim(),
           addressLine2: _addressLine2Controller.text.trim(),
           city: _cityController.text.trim(),

@@ -25,8 +25,6 @@ class ServiceAssignmentScreen extends StatefulWidget {
   final String phoneNumber;
   final String email;
   final String providerType;
-  final String? regNumber;
-  final String? taxId;
   final String addressLine1;
   final String? addressLine2;
   final String city;
@@ -39,8 +37,6 @@ class ServiceAssignmentScreen extends StatefulWidget {
     required this.phoneNumber,
     required this.email,
     required this.providerType,
-    this.regNumber,
-    this.taxId,
     required this.addressLine1,
     this.addressLine2,
     required this.city,
@@ -165,8 +161,6 @@ class _ServiceAssignmentScreenState extends State<ServiceAssignmentScreen>
           phoneNumber: widget.phoneNumber,
           email: widget.email,
           providerType: widget.providerType,
-          regNumber: widget.regNumber,
-          taxId: widget.taxId,
           addressLine1: widget.addressLine1,
           addressLine2: widget.addressLine2,
           city: widget.city,
