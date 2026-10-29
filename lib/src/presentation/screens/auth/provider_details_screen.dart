@@ -7,8 +7,6 @@ import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/living_details_screen.dart';
 
-enum ProviderType { individual, company }
-
 class CountryCode {
   final String flag;
   final String name;
@@ -51,18 +49,13 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _regNumberController = TextEditingController();
-  final TextEditingController _taxIdController = TextEditingController();
 
   final FocusNode _firstNameFocus = FocusNode();
   final FocusNode _lastNameFocus = FocusNode();
   final FocusNode _phoneFocus = FocusNode();
   final FocusNode _emailFocus = FocusNode();
-  final FocusNode _regNumberFocus = FocusNode();
-  final FocusNode _taxIdFocus = FocusNode();
 
   CountryCode _selectedCountry = CountryCode.supported.first;
-  ProviderType _providerType = ProviderType.individual;
   bool _formValid = false;
 
   late AnimationController _animController;
@@ -146,8 +139,6 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
     _lastNameController.addListener(_validateForm);
     _phoneController.addListener(_validateForm);
     _emailController.addListener(_validateForm);
-    _regNumberController.addListener(_validateForm);
-    _taxIdController.addListener(_validateForm);
 
     _validateForm();
   }
@@ -158,15 +149,11 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
     _lastNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _regNumberController.dispose();
-    _taxIdController.dispose();
 
     _firstNameFocus.dispose();
     _lastNameFocus.dispose();
     _phoneFocus.dispose();
     _emailFocus.dispose();
-    _regNumberFocus.dispose();
-    _taxIdFocus.dispose();
 
     _animController.dispose();
     super.dispose();
@@ -177,21 +164,15 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
     final lastName = _lastNameController.text.trim();
     final phone = _phoneController.text.trim();
     final email = _emailController.text.trim();
-    final regNumber = _regNumberController.text.trim();
-    final taxId = _taxIdController.text.trim();
 
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     final isValidEmail = emailRegex.hasMatch(email);
     final isValidPhone = phone.length >= 9;
 
-    bool valid = firstName.isNotEmpty &&
+    final valid = firstName.isNotEmpty &&
         lastName.isNotEmpty &&
         isValidPhone &&
         isValidEmail;
-
-    if (_providerType == ProviderType.company) {
-      valid = valid && regNumber.isNotEmpty && taxId.isNotEmpty;
-    }
 
     if (valid != _formValid) {
       setState(() {
@@ -336,9 +317,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
           lastName: _lastNameController.text.trim(),
           phoneNumber: fullNumber,
           email: _emailController.text.trim(),
-          providerType: _providerType == ProviderType.individual ? 'individual' : 'company',
-          regNumber: _providerType == ProviderType.company ? _regNumberController.text.trim() : null,
-          taxId: _providerType == ProviderType.company ? _taxIdController.text.trim() : null,
+          providerType: 'individual',
         ),
       ),
     );
@@ -583,10 +562,6 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
                                       ),
                                       SizedBox(height: 20.h),
 
-                                      // Account Type Toggle Card
-                                      _buildTypeSelector(),
-                                      SizedBox(height: 20.h),
-
                                       // Name Field Row (2 Columns: First Name & Last Name)
                                       Row(
                                         children: [
@@ -594,7 +569,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
                                             child: _buildInputField(
                                               controller: _firstNameController,
                                               focusNode: _firstNameFocus,
-                                              nextFocus: _phoneFocus,
+                                              nextFocus: _lastNameFocus,
                                               label: 'First Name',
                                               hint: 'e.g. Nimal',
                                               icon: Icons.person_outline_rounded,
@@ -632,10 +607,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
                                       _buildInputField(
                                         controller: _emailController,
                                         focusNode: _emailFocus,
-                                        nextFocus:
-                                            _providerType == ProviderType.company
-                                                ? _regNumberFocus
-                                                : null,
+                                        nextFocus: null,
                                         label: 'Email Address',
                                         hint: 'e.g. pro@jobhive.com',
                                         keyboardType:
@@ -643,45 +615,6 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
                                         icon: Icons.mail_outline_rounded,
                                       ),
                                       SizedBox(height: 16.h),
-
-                                      // Additional Company Fields (Animated expansion)
-                                      AnimatedSize(
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        curve: Curves.easeInOutCubic,
-                                        child: _providerType ==
-                                                ProviderType.company
-                                            ? Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  // Registration Number
-                                                  _buildInputField(
-                                                    controller:
-                                                        _regNumberController,
-                                                    focusNode: _regNumberFocus,
-                                                    nextFocus: _taxIdFocus,
-                                                    label:
-                                                        'Registration Number (BR)',
-                                                    hint: 'e.g. PV-123456',
-                                                    icon: Icons.badge_outlined,
-                                                  ),
-                                                  SizedBox(height: 16.h),
-
-                                                  // Tax ID
-                                                  _buildInputField(
-                                                    controller: _taxIdController,
-                                                    focusNode: _taxIdFocus,
-                                                    label: 'Tax ID / TIN',
-                                                    hint: 'e.g. TIN-98765432',
-                                                    icon: Icons.receipt_long_outlined,
-                                                  ),
-                                                  SizedBox(height: 16.h),
-                                                ],
-                                              )
-                                            : const SizedBox.shrink(),
-                                      ),
-                                      SizedBox(height: 12.h),
                                     ],
                                   ),
                                 ),
@@ -844,9 +777,7 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
               ],
             ),
             child: Icon(
-              _providerType == ProviderType.individual
-                  ? Icons.person_rounded
-                  : Icons.business_rounded,
+              Icons.person_rounded,
               size: 44.r,
               color: AppColors.textSecondary.withValues(alpha: 0.6),
             ),
@@ -872,88 +803,6 @@ class _ProviderDetailsScreenState extends State<ProviderDetailsScreen>
     );
   }
 
-  Widget _buildTypeSelector() {
-    return Container(
-      padding: EdgeInsets.all(4.r),
-      decoration: BoxDecoration(
-        color: AppColors.cardSelectedBg,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.borderUnselected, width: 1.2),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildTypeOption(
-              type: ProviderType.individual,
-              label: 'Individual Pro',
-              icon: Icons.person_rounded,
-            ),
-          ),
-          Expanded(
-            child: _buildTypeOption(
-              type: ProviderType.company,
-              label: 'Company / Agency',
-              icon: Icons.business_rounded,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTypeOption({
-    required ProviderType type,
-    required String label,
-    required IconData icon,
-  }) {
-    final isSelected = _providerType == type;
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        setState(() {
-          _providerType = type;
-          _validateForm();
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(vertical: 10.h),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(12.r),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : [],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 18.r,
-              color: isSelected ? Colors.white : AppColors.textSecondary,
-            ),
-            SizedBox(width: 6.w),
-            Text(
-              label,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13.5.sp,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? Colors.white : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildInputField({
     required TextEditingController controller,

@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:equatable/equatable.dart';
 
-class BankAccountModel {
+class BankAccountEntity extends Equatable {
   final String id;
   final String bankName;
   final String bankCode;
@@ -10,10 +10,8 @@ class BankAccountModel {
   final String branchCode;
   final String accountType; // 'Savings' | 'Current'
   final bool isPrimary;
-  final Color cardStartColor;
-  final Color cardEndColor;
 
-  const BankAccountModel({
+  const BankAccountEntity({
     required this.id,
     required this.bankName,
     required this.bankCode,
@@ -23,8 +21,6 @@ class BankAccountModel {
     this.branchCode = '',
     this.accountType = 'Savings',
     this.isPrimary = false,
-    this.cardStartColor = const Color(0xFF1E3A8A),
-    this.cardEndColor = const Color(0xFF0F172A),
   });
 
   String get maskedAccountNumber {
@@ -39,7 +35,7 @@ class BankAccountModel {
     return '•••• $lastFour';
   }
 
-  BankAccountModel copyWith({
+  BankAccountEntity copyWith({
     String? id,
     String? bankName,
     String? bankCode,
@@ -49,10 +45,8 @@ class BankAccountModel {
     String? branchCode,
     String? accountType,
     bool? isPrimary,
-    Color? cardStartColor,
-    Color? cardEndColor,
   }) {
-    return BankAccountModel(
+    return BankAccountEntity(
       id: id ?? this.id,
       bankName: bankName ?? this.bankName,
       bankCode: bankCode ?? this.bankCode,
@@ -62,8 +56,19 @@ class BankAccountModel {
       branchCode: branchCode ?? this.branchCode,
       accountType: accountType ?? this.accountType,
       isPrimary: isPrimary ?? this.isPrimary,
-      cardStartColor: cardStartColor ?? this.cardStartColor,
-      cardEndColor: cardEndColor ?? this.cardEndColor,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        id,
+        bankName,
+        bankCode,
+        accountHolderName,
+        accountNumber,
+        branchName,
+        branchCode,
+        accountType,
+        isPrimary,
+      ];
 }

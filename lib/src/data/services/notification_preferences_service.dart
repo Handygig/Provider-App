@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider_app/core/di/service_locator.dart';
+import 'package:provider_app/src/domain/entities/notifications/notification_preferences_entity.dart';
+import 'package:provider_app/src/presentation/cubits/notifications/notification_preferences_cubit.dart';
+
+export 'package:provider_app/src/domain/entities/notifications/notification_preferences_entity.dart';
 
 class NotificationPreferencesService extends ChangeNotifier {
   static final NotificationPreferencesService _instance =
@@ -8,42 +13,31 @@ class NotificationPreferencesService extends ChangeNotifier {
 
   NotificationPreferencesService._internal();
 
-  // Master Notifications Toggle
-  bool _allNotificationsEnabled = true;
-  bool get allNotificationsEnabled => _allNotificationsEnabled;
+  NotificationPreferencesCubit get _cubit =>
+      sl<NotificationPreferencesCubit>();
 
-  // Push Notifications Category
-  bool _newJobRequests = true;
-  bool get newJobRequests => _newJobRequests;
+  bool get allNotificationsEnabled => _cubit.preferences.allNotificationsEnabled;
+  bool get newJobRequests => _cubit.preferences.newJobRequests;
+  bool get clientMessages => _cubit.preferences.clientMessages;
+  bool get jobScheduleReminders => _cubit.preferences.jobScheduleReminders;
+  bool get payoutAndPaymentAlerts => _cubit.preferences.payoutAndPaymentAlerts;
+  bool get systemSecurityAlerts => _cubit.preferences.systemSecurityAlerts;
+  bool get smsUrgentJobs => _cubit.preferences.smsUrgentJobs;
+  bool get smsPaymentReceipts => _cubit.preferences.smsPaymentReceipts;
+  bool get loudJobAlarmMode => _cubit.preferences.loudJobAlarmMode;
+  bool get hapticFeedbackEnabled => _cubit.preferences.hapticFeedbackEnabled;
+  String get alertRingtone => _cubit.preferences.alertRingtone;
+  bool get quietHoursEnabled => _cubit.preferences.quietHoursEnabled;
 
-  bool _clientMessages = true;
-  bool get clientMessages => _clientMessages;
+  TimeOfDay get quietHoursStart => TimeOfDay(
+        hour: _cubit.preferences.quietHoursStartHour,
+        minute: _cubit.preferences.quietHoursStartMinute,
+      );
 
-  bool _jobScheduleReminders = true;
-  bool get jobScheduleReminders => _jobScheduleReminders;
-
-  bool _payoutAndPaymentAlerts = true;
-  bool get payoutAndPaymentAlerts => _payoutAndPaymentAlerts;
-
-  bool _systemSecurityAlerts = true;
-  bool get systemSecurityAlerts => _systemSecurityAlerts;
-
-  // SMS Notifications
-  bool _smsUrgentJobs = true;
-  bool get smsUrgentJobs => _smsUrgentJobs;
-
-  bool _smsPaymentReceipts = true;
-  bool get smsPaymentReceipts => _smsPaymentReceipts;
-
-  // Sound & Vibrations
-  bool _loudJobAlarmMode = true;
-  bool get loudJobAlarmMode => _loudJobAlarmMode;
-
-  bool _hapticFeedbackEnabled = true;
-  bool get hapticFeedbackEnabled => _hapticFeedbackEnabled;
-
-  String _alertRingtone = 'Radar Pulse (Default)';
-  String get alertRingtone => _alertRingtone;
+  TimeOfDay get quietHoursEnd => TimeOfDay(
+        hour: _cubit.preferences.quietHoursEndHour,
+        minute: _cubit.preferences.quietHoursEndMinute,
+      );
 
   static const List<String> availableRingtones = [
     'Radar Pulse (Default)',
@@ -53,139 +47,92 @@ class NotificationPreferencesService extends ChangeNotifier {
     'Crisp Beep',
   ];
 
-  // Quiet Hours (Do Not Disturb)
-  bool _quietHoursEnabled = false;
-  bool get quietHoursEnabled => _quietHoursEnabled;
-
-  TimeOfDay _quietHoursStart = const TimeOfDay(hour: 22, minute: 0); // 10:00 PM
-  TimeOfDay get quietHoursStart => _quietHoursStart;
-
-  TimeOfDay _quietHoursEnd = const TimeOfDay(hour: 7, minute: 0); // 07:00 AM
-  TimeOfDay get quietHoursEnd => _quietHoursEnd;
-
-  bool _quietHoursBypassEmergency = true;
-  bool get quietHoursBypassEmergency => _quietHoursBypassEmergency;
-
-  // Marketing & Promotions
-  bool _partnerBonusesAndIncentives = true;
-  bool get partnerBonusesAndIncentives => _partnerBonusesAndIncentives;
-
-  bool _communityTipsAndNews = false;
-  bool get communityTipsAndNews => _communityTipsAndNews;
-
-  // Summary for Profile Tab
-  String get summary {
-    if (!_allNotificationsEnabled) return 'All Notifications Paused';
-    final parts = <String>[];
-    if (_newJobRequests) parts.add('Instant Jobs');
-    if (_loudJobAlarmMode) parts.add('Loud Alarm');
-    if (_clientMessages) parts.add('Chat Alerts');
-    if (parts.isEmpty) return 'Active';
-    return parts.join(' • ');
-  }
-
-  // ---------------------------------------------------------------------------
-  // Mutators
-  // ---------------------------------------------------------------------------
-  void toggleAllNotifications(bool val) {
-    _allNotificationsEnabled = val;
+  void toggleAllNotifications(bool value) {
+    _cubit.savePreferences(
+        _cubit.preferences.copyWith(allNotificationsEnabled: value));
     notifyListeners();
   }
 
-  void toggleNewJobRequests(bool val) {
-    _newJobRequests = val;
+  void toggleNewJobRequests(bool value) {
+    _cubit.savePreferences(_cubit.preferences.copyWith(newJobRequests: value));
     notifyListeners();
   }
 
-  void toggleClientMessages(bool val) {
-    _clientMessages = val;
+  void toggleClientMessages(bool value) {
+    _cubit.savePreferences(_cubit.preferences.copyWith(clientMessages: value));
     notifyListeners();
   }
 
-  void toggleJobScheduleReminders(bool val) {
-    _jobScheduleReminders = val;
+  void toggleJobScheduleReminders(bool value) {
+    _cubit.savePreferences(
+        _cubit.preferences.copyWith(jobScheduleReminders: value));
     notifyListeners();
   }
 
-  void togglePayoutAndPaymentAlerts(bool val) {
-    _payoutAndPaymentAlerts = val;
+  void togglePayoutAndPaymentAlerts(bool value) {
+    _cubit.savePreferences(
+        _cubit.preferences.copyWith(payoutAndPaymentAlerts: value));
     notifyListeners();
   }
 
-  void toggleSystemSecurityAlerts(bool val) {
-    _systemSecurityAlerts = val;
+  void toggleSystemSecurityAlerts(bool value) {
+    _cubit.savePreferences(
+        _cubit.preferences.copyWith(systemSecurityAlerts: value));
     notifyListeners();
   }
 
-  void toggleSmsUrgentJobs(bool val) {
-    _smsUrgentJobs = val;
+  void toggleSmsUrgentJobs(bool value) {
+    _cubit.savePreferences(_cubit.preferences.copyWith(smsUrgentJobs: value));
     notifyListeners();
   }
 
-  void toggleSmsPaymentReceipts(bool val) {
-    _smsPaymentReceipts = val;
+  void toggleSmsPaymentReceipts(bool value) {
+    _cubit.savePreferences(
+        _cubit.preferences.copyWith(smsPaymentReceipts: value));
     notifyListeners();
   }
 
-  void toggleLoudJobAlarmMode(bool val) {
-    _loudJobAlarmMode = val;
+  void toggleLoudJobAlarmMode(bool value) {
+    _cubit.savePreferences(_cubit.preferences.copyWith(loudJobAlarmMode: value));
     notifyListeners();
   }
 
-  void toggleHapticFeedback(bool val) {
-    _hapticFeedbackEnabled = val;
+  void toggleHapticFeedback(bool value) {
+    _cubit.savePreferences(
+        _cubit.preferences.copyWith(hapticFeedbackEnabled: value));
     notifyListeners();
   }
 
-  void setAlertRingtone(String tone) {
-    _alertRingtone = tone;
+  void setRingtone(String ringtone) {
+    _cubit.savePreferences(_cubit.preferences.copyWith(alertRingtone: ringtone));
     notifyListeners();
   }
 
-  void toggleQuietHours(bool val) {
-    _quietHoursEnabled = val;
-    notifyListeners();
-  }
-
-  void updateQuietHours({TimeOfDay? start, TimeOfDay? end}) {
-    if (start != null) _quietHoursStart = start;
-    if (end != null) _quietHoursEnd = end;
-    notifyListeners();
-  }
-
-  void toggleQuietHoursBypassEmergency(bool val) {
-    _quietHoursBypassEmergency = val;
-    notifyListeners();
-  }
-
-  void togglePartnerBonuses(bool val) {
-    _partnerBonusesAndIncentives = val;
-    notifyListeners();
-  }
-
-  void toggleCommunityTips(bool val) {
-    _communityTipsAndNews = val;
-    notifyListeners();
-  }
+  void setAlertRingtone(String ringtone) => setRingtone(ringtone);
 
   void resetToDefaults() {
-    _allNotificationsEnabled = true;
-    _newJobRequests = true;
-    _clientMessages = true;
-    _jobScheduleReminders = true;
-    _payoutAndPaymentAlerts = true;
-    _systemSecurityAlerts = true;
-    _smsUrgentJobs = true;
-    _smsPaymentReceipts = true;
-    _loudJobAlarmMode = true;
-    _hapticFeedbackEnabled = true;
-    _alertRingtone = 'Radar Pulse (Default)';
-    _quietHoursEnabled = false;
-    _quietHoursStart = const TimeOfDay(hour: 22, minute: 0);
-    _quietHoursEnd = const TimeOfDay(hour: 7, minute: 0);
-    _quietHoursBypassEmergency = true;
-    _partnerBonusesAndIncentives = true;
-    _communityTipsAndNews = false;
+    _cubit.savePreferences(const NotificationPreferencesEntity());
+    notifyListeners();
+  }
+
+  void toggleQuietHours(bool value) {
+    _cubit.savePreferences(_cubit.preferences.copyWith(quietHoursEnabled: value));
+    notifyListeners();
+  }
+
+  void setQuietHoursStart(TimeOfDay time) {
+    _cubit.savePreferences(_cubit.preferences.copyWith(
+      quietHoursStartHour: time.hour,
+      quietHoursStartMinute: time.minute,
+    ));
+    notifyListeners();
+  }
+
+  void setQuietHoursEnd(TimeOfDay time) {
+    _cubit.savePreferences(_cubit.preferences.copyWith(
+      quietHoursEndHour: time.hour,
+      quietHoursEndMinute: time.minute,
+    ));
     notifyListeners();
   }
 }

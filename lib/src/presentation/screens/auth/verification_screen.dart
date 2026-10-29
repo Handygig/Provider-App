@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/under_review_screen.dart';
@@ -17,8 +18,6 @@ class VerificationScreen extends StatefulWidget {
   final String phoneNumber;
   final String email;
   final String providerType;
-  final String? regNumber;
-  final String? taxId;
   final String addressLine1;
   final String? addressLine2;
   final String city;
@@ -32,8 +31,6 @@ class VerificationScreen extends StatefulWidget {
     required this.phoneNumber,
     required this.email,
     required this.providerType,
-    this.regNumber,
-    this.taxId,
     required this.addressLine1,
     this.addressLine2,
     required this.city,
@@ -47,14 +44,16 @@ class VerificationScreen extends StatefulWidget {
 
 class _VerificationScreenState extends State<VerificationScreen>
     with SingleTickerProviderStateMixin {
+  final ImagePicker _picker = ImagePicker();
+
   // Document state
   String? _nicFrontName;
+  String? _nicFrontPath;
   String? _nicBackName;
-  String? _brDocName;
+  String? _nicBackPath;
 
   bool _isUploadingFront = false;
   bool _isUploadingBack = false;
-  bool _isUploadingBR = false;
 
   bool _formValid = false;
 
@@ -128,48 +127,61 @@ class _VerificationScreenState extends State<VerificationScreen>
 
   void _validateForm() {
     setState(() {
-      if (widget.providerType == 'individual') {
-        _formValid = _nicFrontName != null && _nicBackName != null;
-      } else {
-        _formValid = _brDocName != null;
-      }
+      _formValid = _nicFrontName != null && _nicBackName != null;
     });
   }
 
-  Future<void> _mockUpload(String docType) async {
+  Future<void> _pickDocument(String docType) async {
     HapticFeedback.lightImpact();
     setState(() {
       if (docType == 'front') _isUploadingFront = true;
       if (docType == 'back') _isUploadingBack = true;
-      if (docType == 'br') _isUploadingBR = true;
     });
+    try {
+      final XFile? file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (file == null) return;
 
-    // Simulate progress upload
-    await Future.delayed(const Duration(milliseconds: 1400));
-
-    setState(() {
-      if (docType == 'front') {
-        _isUploadingFront = false;
-        _nicFrontName = 'NIC_Front_Scan.jpg';
+      setState(() {
+        if (docType == 'front') {
+          _nicFrontPath = file.path;
+          _nicFrontName = file.name;
+        } else if (docType == 'back') {
+          _nicBackPath = file.path;
+          _nicBackName = file.name;
+        }
+      });
+      _validateForm();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick document: $e')),
+        );
       }
-      if (docType == 'back') {
-        _isUploadingBack = false;
-        _nicBackName = 'NIC_Back_Scan.jpg';
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (docType == 'front') _isUploadingFront = false;
+          if (docType == 'back') _isUploadingBack = false;
+        });
       }
-      if (docType == 'br') {
-        _isUploadingBR = false;
-        _brDocName = 'Business_Registration_Certificate.pdf';
-      }
-    });
-    _validateForm();
+    }
   }
 
   void _removeDoc(String docType) {
     HapticFeedback.selectionClick();
     setState(() {
-      if (docType == 'front') _nicFrontName = null;
-      if (docType == 'back') _nicBackName = null;
-      if (docType == 'br') _brDocName = null;
+      if (docType == 'front') {
+        _nicFrontName = null;
+        _nicFrontPath = null;
+      } else if (docType == 'back') {
+        _nicBackName = null;
+        _nicBackPath = null;
+      }
     });
     _validateForm();
   }
@@ -180,21 +192,21 @@ class _VerificationScreenState extends State<VerificationScreen>
 
     context.read<AuthBloc>().add(
       CompleteProfileRequested(
-        providerType: widget.providerType,
+        providerType: 'individual',
         firstName: widget.firstName,
         lastName: widget.lastName,
         email: widget.email,
-        regNumber: widget.regNumber,
-        taxId: widget.taxId,
+        regNumber: null,
+        taxId: null,
         addressLine1: widget.addressLine1,
         addressLine2: widget.addressLine2,
         city: widget.city,
         state: 'Not Provided',
         postalCode: widget.postalCode,
         country: 'Sri Lanka',
-        nicFrontPath: _nicFrontName,
-        nicBackPath: _nicBackName,
-        brCertificatePath: _brDocName,
+        nicFrontPath: _nicFrontPath,
+        nicBackPath: _nicBackPath,
+        brCertificatePath: null,
         services: widget.services,
         profileImagePath: null,
       ),
@@ -206,7 +218,6 @@ class _VerificationScreenState extends State<VerificationScreen>
     final screenHeight = MediaQuery.of(context).size.height;
     final topSafeArea = MediaQuery.of(context).padding.top;
     final minTop = topSafeArea + 12.h;
-    final isIndividual = widget.providerType == 'individual';
 
     if (!_hasCalculatedDefaultTop) {
       _defaultTop = (screenHeight * 0.28).clamp(150.0, 260.0);
@@ -429,9 +440,9 @@ class _VerificationScreenState extends State<VerificationScreen>
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                   children: [
-                                    // Dynamic Title
+                                    // Title
                                     Text(
-                                      isIndividual ? 'KYC Verification' : 'KYB Verification',
+                                      'KYC Verification',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 30.sp,
                                         fontWeight: FontWeight.w800,
@@ -444,9 +455,7 @@ class _VerificationScreenState extends State<VerificationScreen>
 
                                     // Description
                                     Text(
-                                      isIndividual
-                                          ? 'Please upload clear photos of your National Identity Card (NIC) front and back for verification.'
-                                          : 'Please upload your business registration documents to verify your corporate account.',
+                                      'Please upload clear photos of your National Identity Card (NIC) front and back for verification.',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.w500,
@@ -456,63 +465,42 @@ class _VerificationScreenState extends State<VerificationScreen>
                                     ),
                                     SizedBox(height: 24.h),
 
-                                    // Dynamic upload widgets
-                                    if (isIndividual) ...[
-                                      // NIC Front Card
-                                      Text(
-                                        'ID Card Front Image',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14.5.sp,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textHeadline,
-                                        ),
+                                    // NIC Front Card
+                                    Text(
+                                      'ID Card Front Image',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14.5.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textHeadline,
                                       ),
-                                      SizedBox(height: 8.h),
-                                      _buildUploadCard(
-                                        fileName: _nicFrontName,
-                                        isUploading: _isUploadingFront,
-                                        onTap: () => _mockUpload('front'),
-                                        onRemove: () => _removeDoc('front'),
-                                        label: 'Tap to upload NIC front image',
-                                      ),
-                                      SizedBox(height: 20.h),
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    _buildUploadCard(
+                                      fileName: _nicFrontName,
+                                      isUploading: _isUploadingFront,
+                                      onTap: () => _pickDocument('front'),
+                                      onRemove: () => _removeDoc('front'),
+                                      label: 'Tap to upload NIC front image',
+                                    ),
+                                    SizedBox(height: 20.h),
 
-                                      // NIC Back Card
-                                      Text(
-                                        'ID Card Back Image',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14.5.sp,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textHeadline,
-                                        ),
+                                    // NIC Back Card
+                                    Text(
+                                      'ID Card Back Image',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14.5.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textHeadline,
                                       ),
-                                      SizedBox(height: 8.h),
-                                      _buildUploadCard(
-                                        fileName: _nicBackName,
-                                        isUploading: _isUploadingBack,
-                                        onTap: () => _mockUpload('back'),
-                                        onRemove: () => _removeDoc('back'),
-                                        label: 'Tap to upload NIC back image',
-                                      ),
-                                    ] else ...[
-                                      // Business Registration Card
-                                      Text(
-                                        'Business Registration (BR) Document',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14.5.sp,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textHeadline,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8.h),
-                                      _buildUploadCard(
-                                        fileName: _brDocName,
-                                        isUploading: _isUploadingBR,
-                                        onTap: () => _mockUpload('br'),
-                                        onRemove: () => _removeDoc('br'),
-                                        label: 'Tap to upload BR certificate (PDF/JPG)',
-                                      ),
-                                    ],
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    _buildUploadCard(
+                                      fileName: _nicBackName,
+                                      isUploading: _isUploadingBack,
+                                      onTap: () => _pickDocument('back'),
+                                      onRemove: () => _removeDoc('back'),
+                                      label: 'Tap to upload NIC back image',
+                                    ),
                                     SizedBox(height: 24.h),
                                   ],
                                 ),

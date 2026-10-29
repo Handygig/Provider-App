@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:provider_app/core/errors/failures.dart';
-import 'package:provider_app/core/errors/auth_exception.dart';
 import 'package:provider_app/core/services/auth_manager.dart';
 import 'package:provider_app/core/services/network_service.dart';
 import 'package:provider_app/src/data/data_sources/remote/auth/auth_remote_data_source.dart';

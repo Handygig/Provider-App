@@ -6,7 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
-import 'package:provider_app/src/domain/models/job_model.dart';
+import 'package:provider_app/src/data/models/jobs/job_model.dart';
+import 'package:provider_app/src/presentation/screens/jobs/utils/job_ui_helper.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 
 class ChatMessage {
