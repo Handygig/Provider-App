@@ -236,7 +236,7 @@ class _ProfileTabView extends StatelessWidget {
                                         ),
                                       ),
                                       SizedBox(width: 8.w),
-                                      _buildStatusBadge(profile.approvalStatus),
+                                      _buildStatusBadge(profile),
                                     ],
                                   ),
                                   SizedBox(height: 3.h),
@@ -495,10 +495,15 @@ class _ProfileTabView extends StatelessWidget {
     return parts.isEmpty ? 'Provider Account' : parts.join(' • ');
   }
 
-  String _buildKycSubtitle(dynamic profile) {
+  String _buildKycSubtitle(ProviderProfileEntity profile) {
     final kyc = profile.kyc;
-    if (kyc == null) {
-      return 'National ID & profile verification';
+    final hasSubmitted = kyc != null &&
+        kyc.status.toUpperCase() != 'NOT_SUBMITTED' &&
+        (kyc.submittedAt != null ||
+            (kyc.documents is Map && (kyc.documents as Map).isNotEmpty));
+
+    if (kyc == null || !hasSubmitted) {
+      return 'Upload NIC & trade verification';
     }
     if (kyc.isApproved) {
       return 'All documents approved • Verified';
@@ -511,36 +516,41 @@ class _ProfileTabView extends StatelessWidget {
           ? 'Rejected: ${kyc.rejectionReason}'
           : 'Document rejected • Please re-upload';
     }
-    return 'National ID & profile verification';
+    return 'Upload NIC & trade verification';
   }
 
-  Widget _buildStatusBadge(String status) {
-    final upper = status.toUpperCase();
+  Widget _buildStatusBadge(ProviderProfileEntity profile) {
+    final upper = profile.approvalStatus.toUpperCase();
+    final isKycSubmitted = profile.kyc != null &&
+        profile.kyc!.status.toUpperCase() != 'NOT_SUBMITTED' &&
+        (profile.kyc!.submittedAt != null ||
+            (profile.kyc!.documents is Map && (profile.kyc!.documents as Map).isNotEmpty));
+
     Color bg;
     Color border;
     Color text;
     String label;
 
-    switch (upper) {
-      case 'APPROVED':
-        bg = const Color(0xFFDCFCE7);
-        border = const Color(0xFF86EFAC);
-        text = const Color(0xFF166534);
-        label = 'VERIFIED';
-        break;
-      case 'REJECTED':
-        bg = const Color(0xFFFEE2E2);
-        border = const Color(0xFFFCA5A5);
-        text = const Color(0xFF991B1B);
-        label = 'REJECTED';
-        break;
-      case 'PENDING':
-      default:
-        bg = const Color(0xFFFEF3C7);
-        border = const Color(0xFFFCD34D);
-        text = const Color(0xFF92400E);
-        label = 'UNDER REVIEW';
-        break;
+    if (upper == 'APPROVED' || (profile.kyc != null && profile.kyc!.isApproved)) {
+      bg = const Color(0xFFDCFCE7);
+      border = const Color(0xFF86EFAC);
+      text = const Color(0xFF166534);
+      label = 'VERIFIED';
+    } else if (upper == 'REJECTED' || (profile.kyc != null && profile.kyc!.isRejected)) {
+      bg = const Color(0xFFFEE2E2);
+      border = const Color(0xFFFCA5A5);
+      text = const Color(0xFF991B1B);
+      label = 'REJECTED';
+    } else if (!isKycSubmitted) {
+      bg = const Color(0xFFF3F4F6);
+      border = const Color(0xFFD1D5DB);
+      text = const Color(0xFF4B5563);
+      label = 'UNVERIFIED';
+    } else {
+      bg = const Color(0xFFFEF3C7);
+      border = const Color(0xFFFCD34D);
+      text = const Color(0xFF92400E);
+      label = 'UNDER REVIEW';
     }
 
     return Container(

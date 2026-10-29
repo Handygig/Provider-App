@@ -115,12 +115,17 @@ class VerificationService extends ChangeNotifier {
   bool get hasSkillCert => _skillCertPath != null && _skillCertPath!.isNotEmpty;
 
   void syncWithProfile(ProviderProfileEntity profile) {
+    final hasSubmittedKyc = profile.kyc != null &&
+        profile.kyc!.status.toUpperCase() != 'NOT_SUBMITTED' &&
+        (profile.kyc!.submittedAt != null ||
+            (profile.kyc!.documents is Map && (profile.kyc!.documents as Map).isNotEmpty));
+
     if (profile.isApproved || (profile.kyc != null && profile.kyc!.isApproved)) {
       _status = VerificationStatus.approved;
     } else if (profile.isRejected || (profile.kyc != null && profile.kyc!.isRejected)) {
       _status = VerificationStatus.rejected;
       _adminFeedback = profile.kyc?.rejectionReason;
-    } else if (profile.kyc != null && profile.kyc!.isPending) {
+    } else if (hasSubmittedKyc && profile.kyc!.isPending) {
       _status = VerificationStatus.pending;
     } else {
       _status = VerificationStatus.notSubmitted;
