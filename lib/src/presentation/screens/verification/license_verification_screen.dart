@@ -51,7 +51,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
     _initialized = true;
 
     final kyc = profile.kyc;
-    _nicController.text = profile.addressLine1 != null ? (profile.regNumber ?? kyc?.nicNumber ?? '') : (kyc?.nicNumber ?? '');
+    _nicController.text = kyc?.nicNumber ?? profile.regNumber ?? '';
     _skillController.text = kyc?.skillName ?? '';
 
     _localNicFront = kyc?.nicFrontUrl;
@@ -696,7 +696,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                 color: AppColors.textHeadline,
               ),
               decoration: InputDecoration(
-                hintText: 'e.g. 199214502341 or 921452341V',
+                hintText: 'Enter your National ID or Passport Number',
                 hintStyle: GoogleFonts.plusJakartaSans(
                   fontSize: 12.5.sp,
                   color: AppColors.textMuted,

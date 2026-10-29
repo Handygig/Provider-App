@@ -4,6 +4,7 @@ import 'package:provider_app/src/domain/usecases/profile/get_provider_dashboard_
 import 'package:provider_app/src/domain/usecases/profile/get_provider_profile_usecase.dart';
 import 'package:provider_app/src/domain/usecases/profile/submit_provider_kyc_usecase.dart';
 import 'package:provider_app/src/domain/usecases/profile/toggle_provider_availability_usecase.dart';
+import 'package:provider_app/src/domain/usecases/profile/update_provider_profile_usecase.dart';
 import 'package:provider_app/src/presentation/cubits/profile/profile_state.dart';
 
 class ProfileCubit extends Cubit<ProfileState> {
@@ -11,16 +12,19 @@ class ProfileCubit extends Cubit<ProfileState> {
   final GetProviderDashboardUseCase _getDashboardUseCase;
   final ToggleProviderAvailabilityUseCase _toggleAvailabilityUseCase;
   final SubmitProviderKycUseCase _submitProviderKycUseCase;
+  final UpdateProviderProfileUseCase _updateProfileUseCase;
 
   ProfileCubit({
     required GetProviderProfileUseCase getProfileUseCase,
     required GetProviderDashboardUseCase getDashboardUseCase,
     required ToggleProviderAvailabilityUseCase toggleAvailabilityUseCase,
     required SubmitProviderKycUseCase submitProviderKycUseCase,
+    required UpdateProviderProfileUseCase updateProfileUseCase,
   })  : _getProfileUseCase = getProfileUseCase,
         _getDashboardUseCase = getDashboardUseCase,
         _toggleAvailabilityUseCase = toggleAvailabilityUseCase,
         _submitProviderKycUseCase = submitProviderKycUseCase,
+        _updateProfileUseCase = updateProfileUseCase,
         super(const ProfileInitial());
 
   Future<void> loadProfile({bool showLoading = true}) async {
@@ -109,6 +113,55 @@ class ProfileCubit extends Cubit<ProfileState> {
           kycSubmitError: errorMsg,
         ));
       }
+      return false;
+    }
+  }
+
+  Future<bool> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phone,
+    String? bio,
+    String? addressLine1,
+    String? addressLine2,
+    String? city,
+    String? state,
+    String? postalCode,
+    String? country,
+    double? latitude,
+    double? longitude,
+    double? serviceRadius,
+    List<String>? services,
+    String? profileImagePath,
+  }) async {
+    try {
+      final updatedProfile = await _updateProfileUseCase(
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        phone: phone,
+        bio: bio,
+        addressLine1: addressLine1,
+        addressLine2: addressLine2,
+        city: city,
+        state: state,
+        postalCode: postalCode,
+        country: country,
+        latitude: latitude,
+        longitude: longitude,
+        serviceRadius: serviceRadius,
+        services: services,
+        profileImagePath: profileImagePath,
+      );
+
+      VerificationService.instance.syncWithProfile(updatedProfile);
+
+      if (this.state is ProfileLoaded) {
+        emit((this.state as ProfileLoaded).copyWith(profile: updatedProfile));
+      }
+      return true;
+    } catch (e) {
       return false;
     }
   }

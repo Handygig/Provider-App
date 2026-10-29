@@ -30,4 +30,5 @@ class AppEndpoints {
   static const String providerWallet = '/provider/wallet';
   static const String providerNotifications = '/provider/notifications';
   static const String services = '/services';
+  static const String serviceCategories = '/service-categories';
 }

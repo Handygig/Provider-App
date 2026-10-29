@@ -98,6 +98,9 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton<SubmitProviderKycUseCase>(
     () => SubmitProviderKycUseCase(repository: sl<ProfileRepository>()),
   );
+  sl.registerLazySingleton<UpdateProviderProfileUseCase>(
+    () => UpdateProviderProfileUseCase(repository: sl<ProfileRepository>()),
+  );
 
   // Blocs & Cubits
   sl.registerFactory<AuthBloc>(
@@ -116,6 +119,7 @@ Future<void> initServiceLocator() async {
       getDashboardUseCase: sl<GetProviderDashboardUseCase>(),
       toggleAvailabilityUseCase: sl<ToggleProviderAvailabilityUseCase>(),
       submitProviderKycUseCase: sl<SubmitProviderKycUseCase>(),
+      updateProfileUseCase: sl<UpdateProviderProfileUseCase>(),
     ),
   );
 }

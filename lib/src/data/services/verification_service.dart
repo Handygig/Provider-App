@@ -126,7 +126,7 @@ class VerificationService extends ChangeNotifier {
       _status = VerificationStatus.notSubmitted;
     }
 
-    _nicNumber = profile.addressLine1 != null ? (profile.regNumber ?? profile.kyc?.nicNumber) : profile.kyc?.nicNumber;
+    _nicNumber = profile.kyc?.nicNumber ?? profile.regNumber;
     _nicFrontPath = profile.kyc?.nicFrontUrl;
     _nicBackPath = profile.kyc?.nicBackUrl;
     _skillCertPath = profile.kyc?.skillCertUrl;

@@ -95,24 +95,30 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       if (latitude != null) map['latitude'] = latitude;
       if (longitude != null) map['longitude'] = longitude;
       if (serviceRadius != null) map['service_radius'] = serviceRadius;
-      if (services != null) {
-        for (int i = 0; i < services.length; i++) {
-          map['services[$i]'] = services[i];
-        }
-      }
 
-      dynamic dataToSend;
+      final Response<dynamic> response;
       if (profileImagePath != null && profileImagePath.isNotEmpty) {
+        if (services != null) {
+          for (int i = 0; i < services.length; i++) {
+            map['services[$i]'] = services[i];
+          }
+        }
         map['profile_image'] = await MultipartFile.fromFile(profileImagePath);
-        dataToSend = FormData.fromMap(map);
+        map['_method'] = 'PUT';
+        final formData = FormData.fromMap(map);
+        response = await dio.post(
+          AppEndpoints.providerProfile,
+          data: formData,
+        );
       } else {
-        dataToSend = FormData.fromMap(map);
+        if (services != null) {
+          map['services'] = services;
+        }
+        response = await dio.put(
+          AppEndpoints.providerProfile,
+          data: map,
+        );
       }
-
-      final response = await dio.put(
-        AppEndpoints.providerProfile,
-        data: dataToSend,
-      );
 
       final dynamic body = response.data;
       if (body is Map<String, dynamic>) {
