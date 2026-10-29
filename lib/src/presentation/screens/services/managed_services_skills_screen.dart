@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/data/services/managed_services_service.dart';
 import 'package:provider_app/src/domain/models/service_skill_model.dart';
+import 'package:provider_app/src/presentation/cubits/profile/profile_cubit.dart';
+import 'package:provider_app/src/presentation/cubits/profile/profile_state.dart';
 import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 
@@ -24,7 +27,23 @@ class _ManagedServicesSkillsScreenState
   String _searchQuery = '';
 
   // Expandable state for each service card
-  final Set<String> _expandedServiceIds = {'plumbing', 'ac_repair', 'electrical'};
+  final Set<String> _expandedServiceIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        final profileState = context.read<ProfileCubit>().state;
+        if (profileState is ProfileLoaded) {
+          _service.syncWithProfile(profileState.profile);
+        }
+      } catch (_) {
+        // Fallback profile sync is handled inside fetchCatalog()
+      }
+      _service.fetchCatalog();
+    });
+  }
 
   @override
   void dispose() {
@@ -137,13 +156,37 @@ class _ManagedServicesSkillsScreenState
                         ),
                         SizedBox(height: 12.h),
 
-                        // List of Service Skill Cards
-                        ...filteredServices.map(
-                          (service) => Padding(
-                            padding: EdgeInsets.only(bottom: 14.h),
-                            child: _buildServiceCard(service),
+                        if (_service.isLoading && allServices.isEmpty) ...[
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 30.h),
+                            child: const Center(
+                              child: CircularProgressIndicator(color: AppColors.primary),
+                            ),
                           ),
-                        ),
+                        ] else if (allServices.isEmpty) ...[
+                          _buildEmptyServicesView(),
+                          SizedBox(height: 14.h),
+                        ] else if (filteredServices.isEmpty) ...[
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24.h),
+                            child: Center(
+                              child: Text(
+                                'No services match "$_searchQuery"',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13.sp,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          ...filteredServices.map(
+                            (service) => Padding(
+                              padding: EdgeInsets.only(bottom: 14.h),
+                              child: _buildServiceCard(service),
+                            ),
+                          ),
+                        ],
 
                         // Full-width Add Service Banner Button
                         SizedBox(
@@ -721,10 +764,87 @@ class _ManagedServicesSkillsScreenState
                       );
                     }).toList(),
                   ),
+                  SizedBox(height: 12.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          _service.removeService(service.id);
+                          DynamicIslandToast.showSuccess(
+                            context,
+                            '${service.category} removed from managed services',
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 16,
+                          color: Color(0xFFDC2626),
+                        ),
+                        label: Text(
+                          'Remove Service',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFDC2626),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyServicesView() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 32.h, horizontal: 20.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: const Color(0xFFE5E9DC)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 52.r,
+            height: 52.r,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.handyman_rounded,
+              color: AppColors.primary,
+              size: 26,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            'No Services Configured',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14.5.sp,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textHeadline,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            'Add your service categories to receive job requests that match your trade skills.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.sp,
+              color: AppColors.textMuted,
+              height: 1.4,
+            ),
+          ),
         ],
       ),
     );
@@ -983,10 +1103,23 @@ class _ManagedServicesSkillsScreenState
           SizedBox(height: 12.h),
 
           // Tag Cloud
-          Wrap(
-            spacing: 6.w,
-            runSpacing: 6.h,
-            children: tags.map((tag) {
+          if (tags.isEmpty)
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 8.h),
+              child: Text(
+                'No custom tags added yet. Tap "+ Add Tag" to add special toolings or skills.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11.5.sp,
+                  fontStyle: FontStyle.italic,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            )
+          else
+            Wrap(
+              spacing: 6.w,
+              runSpacing: 6.h,
+              children: tags.map((tag) {
               return Container(
                 padding: EdgeInsets.fromLTRB(10.w, 5.h, 6.w, 5.h),
                 decoration: BoxDecoration(
@@ -1141,21 +1274,46 @@ class _ManagedServicesSkillsScreenState
         width: double.infinity,
         height: 50.h,
         child: ElevatedButton.icon(
-          onPressed: () {
-            HapticFeedback.mediumImpact();
-            DynamicIslandToast.showSuccess(
-              context,
-              'All $activeCount active services saved to your profile!',
-            );
-            Navigator.pop(context);
-          },
-          icon: const Icon(
-            Icons.check_circle_rounded,
-            color: Colors.white,
-            size: 20,
-          ),
+          onPressed: _service.isSaving
+              ? null
+              : () async {
+                  HapticFeedback.mediumImpact();
+                  final success = await _service.saveServices();
+                  if (!mounted) return;
+                  if (success) {
+                    try {
+                      context.read<ProfileCubit>().loadProfile(showLoading: false);
+                    } catch (_) {}
+                    DynamicIslandToast.showSuccess(
+                      context,
+                      'Saved $activeCount active services to your profile!',
+                    );
+                    Navigator.pop(context);
+                  } else {
+                    DynamicIslandToast.showError(
+                      context,
+                      _service.errorMessage ?? 'Failed to save services to profile',
+                    );
+                  }
+                },
+          icon: _service.isSaving
+              ? SizedBox(
+                  width: 18.r,
+                  height: 18.r,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
           label: Text(
-            'Save Active Services ($activeCount Active)',
+            _service.isSaving
+                ? 'Saving Changes...'
+                : 'Save Active Services ($activeCount Active)',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14.5.sp,
               fontWeight: FontWeight.w700,
@@ -1653,7 +1811,7 @@ class _AddServiceCategorySheetState extends State<_AddServiceCategorySheet> {
   @override
   Widget build(BuildContext context) {
     final service = ManagedServicesService.instance;
-    final allPredefined = ManagedServicesService.predefinedCatalog;
+    final allPredefined = service.availableCatalog;
 
     final filtered = allPredefined.where((cat) {
       if (_filter.isEmpty) return true;
@@ -1868,13 +2026,32 @@ class _AddServiceCategorySheetState extends State<_AddServiceCategorySheet> {
             const Divider(height: 1, color: Color(0xFFEEF2E6)),
 
             // Pre-defined Categories List
-            Expanded(
-              child: ListView.separated(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
-                itemCount: filtered.length,
-                separatorBuilder: (_, index) => SizedBox(height: 10.h),
-                itemBuilder: (ctx, idx) {
+            if (service.isLoading && allPredefined.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else if (filtered.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'No categories found matching "$_filter"',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13.sp,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, index) => SizedBox(height: 10.h),
+                  itemBuilder: (ctx, idx) {
                   final cat = filtered[idx];
                   final isAlreadyAdded = service.isServiceAdded(cat.id);
 

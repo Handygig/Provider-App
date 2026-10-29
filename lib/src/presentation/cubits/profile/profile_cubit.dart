@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider_app/src/data/services/managed_services_service.dart';
 import 'package:provider_app/src/data/services/verification_service.dart';
 import 'package:provider_app/src/domain/usecases/profile/get_provider_dashboard_usecase.dart';
 import 'package:provider_app/src/domain/usecases/profile/get_provider_profile_usecase.dart';
@@ -42,6 +43,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       final dashboard = results[1] as dynamic;
 
       VerificationService.instance.syncWithProfile(profile);
+      ManagedServicesService.instance.syncWithProfile(profile);
 
       emit(ProfileLoaded(profile: profile, dashboard: dashboard));
     } catch (e) {
@@ -156,6 +158,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       );
 
       VerificationService.instance.syncWithProfile(updatedProfile);
+      ManagedServicesService.instance.syncWithProfile(updatedProfile);
 
       if (this.state is ProfileLoaded) {
         emit((this.state as ProfileLoaded).copyWith(profile: updatedProfile));

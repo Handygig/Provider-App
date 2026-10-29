@@ -12,6 +12,8 @@ class ServiceSkillModel {
   final List<String> subSkills;
   final List<String> activeSubSkills;
   final bool isVerified;
+  final String? description;
+  final String? imageUrl;
 
   const ServiceSkillModel({
     required this.id,
@@ -25,6 +27,8 @@ class ServiceSkillModel {
     this.subSkills = const [],
     this.activeSubSkills = const [],
     this.isVerified = false,
+    this.description,
+    this.imageUrl,
   });
 
   ServiceSkillModel copyWith({
@@ -39,6 +43,8 @@ class ServiceSkillModel {
     List<String>? subSkills,
     List<String>? activeSubSkills,
     bool? isVerified,
+    String? description,
+    String? imageUrl,
   }) {
     return ServiceSkillModel(
       id: id ?? this.id,
@@ -52,6 +58,8 @@ class ServiceSkillModel {
       subSkills: subSkills ?? this.subSkills,
       activeSubSkills: activeSubSkills ?? this.activeSubSkills,
       isVerified: isVerified ?? this.isVerified,
+      description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }
