@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider_app/src/domain/entities/profile/provider_profile_entity.dart';
 
 enum VerificationStatus {
   notSubmitted,
@@ -70,21 +71,16 @@ class VerificationService extends ChangeNotifier {
 
   VerificationService._internal();
 
-  // Initial state: Start in 'pending' review so the user immediately experiences
-  // the under-review status on the Home page and the access restriction.
-  VerificationStatus _status = VerificationStatus.pending;
+  VerificationStatus _status = VerificationStatus.notSubmitted;
 
-  String? _nicNumber = '199214502341';
+  String? _nicNumber;
   String? _nicFrontPath;
   String? _nicBackPath;
-  String? _brDocPath;
-  String? _brNumber = 'PV-00249182';
   String? _skillCertPath;
-  final String _skillName = 'NVQ Level 4 - Plumbing & Gas Fitting';
+  String? _skillName;
 
-  DateTime? _submittedAt = DateTime.now().subtract(const Duration(hours: 3));
-  String? _adminFeedback =
-      'Your documents are being verified by Handygig Compliance Team. Standard turnaround is 2-24 hours.';
+  DateTime? _submittedAt;
+  String? _adminFeedback;
 
   // Getters
   VerificationStatus get status => _status;
@@ -96,8 +92,6 @@ class VerificationService extends ChangeNotifier {
   String? get nicNumber => _nicNumber;
   String? get nicFrontPath => _nicFrontPath;
   String? get nicBackPath => _nicBackPath;
-  String? get brDocPath => _brDocPath;
-  String? get brNumber => _brNumber;
   String? get skillCertPath => _skillCertPath;
   String? get skillName => _skillName;
   DateTime? get submittedAt => _submittedAt;
@@ -116,10 +110,34 @@ class VerificationService extends ChangeNotifier {
     }
   }
 
-  bool get hasNicFront => _nicFrontPath != null || _status == VerificationStatus.pending;
-  bool get hasNicBack => _nicBackPath != null || _status == VerificationStatus.pending;
-  bool get hasBrDoc => _brDocPath != null || _status == VerificationStatus.pending;
-  bool get hasSkillCert => _skillCertPath != null || _status == VerificationStatus.pending;
+  bool get hasNicFront => _nicFrontPath != null && _nicFrontPath!.isNotEmpty;
+  bool get hasNicBack => _nicBackPath != null && _nicBackPath!.isNotEmpty;
+  bool get hasSkillCert => _skillCertPath != null && _skillCertPath!.isNotEmpty;
+
+  void syncWithProfile(ProviderProfileEntity profile) {
+    if (profile.isApproved || (profile.kyc != null && profile.kyc!.isApproved)) {
+      _status = VerificationStatus.approved;
+    } else if (profile.isRejected || (profile.kyc != null && profile.kyc!.isRejected)) {
+      _status = VerificationStatus.rejected;
+      _adminFeedback = profile.kyc?.rejectionReason;
+    } else if (profile.kyc != null && profile.kyc!.isPending) {
+      _status = VerificationStatus.pending;
+    } else {
+      _status = VerificationStatus.notSubmitted;
+    }
+
+    _nicNumber = profile.addressLine1 != null ? (profile.regNumber ?? profile.kyc?.nicNumber) : profile.kyc?.nicNumber;
+    _nicFrontPath = profile.kyc?.nicFrontUrl;
+    _nicBackPath = profile.kyc?.nicBackUrl;
+    _skillCertPath = profile.kyc?.skillCertUrl;
+    _skillName = profile.kyc?.skillName;
+
+    if (profile.kyc?.submittedAt != null) {
+      _submittedAt = DateTime.tryParse(profile.kyc!.submittedAt!);
+    }
+
+    notifyListeners();
+  }
 
   void setNicFront(String? path) {
     _nicFrontPath = path;
@@ -128,11 +146,6 @@ class VerificationService extends ChangeNotifier {
 
   void setNicBack(String? path) {
     _nicBackPath = path;
-    notifyListeners();
-  }
-
-  void setBrDoc(String? path) {
-    _brDocPath = path;
     notifyListeners();
   }
 
@@ -146,52 +159,8 @@ class VerificationService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setBrNumber(String? number) {
-    _brNumber = number;
-    notifyListeners();
-  }
-
-  void submitDocuments({
-    String? nicNumber,
-    String? brNumber,
-    String? nicFrontPath,
-    String? nicBackPath,
-    String? brDocPath,
-    String? skillCertPath,
-  }) {
-    if (nicNumber != null) _nicNumber = nicNumber;
-    if (brNumber != null) _brNumber = brNumber;
-    if (nicFrontPath != null) _nicFrontPath = nicFrontPath;
-    if (nicBackPath != null) _nicBackPath = nicBackPath;
-    if (brDocPath != null) _brDocPath = brDocPath;
-    if (skillCertPath != null) _skillCertPath = skillCertPath;
-
-    _status = VerificationStatus.pending;
-    _submittedAt = DateTime.now();
-    _adminFeedback =
-        'Your documents are being verified by Handygig Compliance Team. Standard turnaround is 2-24 hours.';
-    notifyListeners();
-  }
-
-  // Simulation controls for testing/demoing all states
-  void simulateAdminApproval() {
-    _status = VerificationStatus.approved;
-    _adminFeedback =
-        'Congratulations! All documents verified and approved. You now have full access to all features.';
-    notifyListeners();
-  }
-
-  void simulateAdminRejection([String? reason]) {
-    _status = VerificationStatus.rejected;
-    _adminFeedback = reason ??
-        'NIC back photo was blurry and illegible. Please re-upload a clear high-resolution photo with all 4 corners visible.';
-    notifyListeners();
-  }
-
-  void simulateResetToNotSubmitted() {
-    _status = VerificationStatus.notSubmitted;
-    _submittedAt = null;
-    _adminFeedback = null;
+  void setSkillName(String? name) {
+    _skillName = name;
     notifyListeners();
   }
 

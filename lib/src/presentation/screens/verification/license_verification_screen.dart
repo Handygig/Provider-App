@@ -1,11 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:provider_app/core/di/service_locator.dart';
 import 'package:provider_app/src/data/services/verification_service.dart';
+import 'package:provider_app/src/domain/entities/profile/provider_profile_entity.dart';
+import 'package:provider_app/src/presentation/cubits/profile/profile_cubit.dart';
+import 'package:provider_app/src/presentation/cubits/profile/profile_state.dart';
 import 'package:provider_app/src/presentation/screens/home/home_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 
@@ -18,37 +23,40 @@ class LicenseVerificationScreen extends StatefulWidget {
 }
 
 class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
-  final VerificationService _service = VerificationService.instance;
-
-  late TextEditingController _nicController;
-  late TextEditingController _brController;
-  late TextEditingController _skillController;
+  late final TextEditingController _nicController;
+  late final TextEditingController _skillController;
 
   String? _localNicFront;
   String? _localNicBack;
-  String? _localBrDoc;
   String? _localSkillCert;
 
-  bool _isSubmitting = false;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    _nicController = TextEditingController(text: _service.nicNumber ?? '199214502341');
-    _brController = TextEditingController(text: _service.brNumber ?? 'PV-00249182');
-    _skillController = TextEditingController(text: _service.skillName ?? 'NVQ Level 4 - Plumbing & Gas Fitting');
-    _localNicFront = _service.nicFrontPath;
-    _localNicBack = _service.nicBackPath;
-    _localBrDoc = _service.brDocPath;
-    _localSkillCert = _service.skillCertPath;
+    _nicController = TextEditingController();
+    _skillController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nicController.dispose();
-    _brController.dispose();
     _skillController.dispose();
     super.dispose();
+  }
+
+  void _populateInitialData(ProviderProfileEntity profile) {
+    if (_initialized) return;
+    _initialized = true;
+
+    final kyc = profile.kyc;
+    _nicController.text = profile.addressLine1 != null ? (profile.regNumber ?? kyc?.nicNumber ?? '') : (kyc?.nicNumber ?? '');
+    _skillController.text = kyc?.skillName ?? '';
+
+    _localNicFront = kyc?.nicFrontUrl;
+    _localNicBack = kyc?.nicBackUrl;
+    _localSkillCert = kyc?.skillCertUrl;
   }
 
   void _navigateToHome() {
@@ -198,11 +206,10 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
       if (image != null) {
         onSelected(image.path);
         if (!mounted) return;
-        DynamicIslandToast.showSuccess(context, 'Document uploaded successfully');
+        DynamicIslandToast.showSuccess(context, 'Document photo attached');
       }
     } catch (e) {
       if (!mounted) return;
-      // On simulator or if camera unavailable, fallback to gallery
       if (source == ImageSource.camera) {
         final ImagePicker picker = ImagePicker();
         final XFile? image = await picker.pickImage(
@@ -222,36 +229,120 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
     }
   }
 
-  void _submitForReview() {
+  Future<void> _submitForReview() async {
     HapticFeedback.heavyImpact();
-    setState(() => _isSubmitting = true);
 
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (!mounted) return;
-      _service.submitDocuments(
-        nicNumber: _nicController.text.trim(),
-        brNumber: _brController.text.trim(),
-        nicFrontPath: _localNicFront,
-        nicBackPath: _localNicBack,
-        brDocPath: _localBrDoc,
-        skillCertPath: _localSkillCert,
+    final nicNumber = _nicController.text.trim();
+    if (nicNumber.isEmpty && (_localNicFront == null || _localNicFront!.isEmpty)) {
+      DynamicIslandToast.showError(
+        context,
+        'Please enter your National ID number or attach document photo',
       );
+      return;
+    }
 
-      setState(() => _isSubmitting = false);
+    final success = await context.read<ProfileCubit>().submitKyc(
+      nicNumber: nicNumber.isNotEmpty ? nicNumber : null,
+      nicFrontPath: _localNicFront,
+      nicBackPath: _localNicBack,
+      skillCertPath: _localSkillCert,
+      skillName: _skillController.text.trim().isNotEmpty
+          ? _skillController.text.trim()
+          : null,
+    );
 
+    if (success && mounted) {
       DynamicIslandToast.showSuccess(
         context,
         'Documents submitted! Admin review in progress.',
       );
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _service,
-      builder: (context, _) {
-        final status = _service.status;
+    try {
+      BlocProvider.of<ProfileCubit>(context);
+      return _buildWithCubit(context);
+    } catch (_) {
+      return BlocProvider(
+        create: (_) => sl<ProfileCubit>()..loadProfile(),
+        child: Builder(builder: (ctx) => _buildWithCubit(ctx)),
+      );
+    }
+  }
+
+  Widget _buildWithCubit(BuildContext context) {
+    return BlocConsumer<ProfileCubit, ProfileState>(
+      listener: (context, state) {
+        if (state is ProfileLoaded) {
+          if (state.kycSubmitSuccess != null) {
+            DynamicIslandToast.showSuccess(context, state.kycSubmitSuccess!);
+          } else if (state.kycSubmitError != null) {
+            DynamicIslandToast.showError(context, state.kycSubmitError!);
+          }
+        }
+      },
+      builder: (context, state) {
+        if (state is ProfileLoading || state is ProfileInitial) {
+          return const Scaffold(
+            backgroundColor: Color(0xFFF7F8F4),
+            body: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          );
+        }
+
+        if (state is ProfileError) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF7F8F4),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline_rounded,
+                      size: 48.r, color: const Color(0xFFDC2626)),
+                  SizedBox(height: 12.h),
+                  Text(
+                    state.message,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      color: AppColors.textHeadline,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () => context.read<ProfileCubit>().loadProfile(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final loaded = state as ProfileLoaded;
+        final profile = loaded.profile;
+        _populateInitialData(profile);
+
+        final kyc = profile.kyc;
+        final VerificationStatus status;
+        if (profile.isApproved || (kyc != null && kyc.isApproved)) {
+          status = VerificationStatus.approved;
+        } else if (profile.isRejected || (kyc != null && kyc.isRejected)) {
+          status = VerificationStatus.rejected;
+        } else if (kyc != null && kyc.isPending) {
+          status = VerificationStatus.pending;
+        } else {
+          status = VerificationStatus.notSubmitted;
+        }
+
+        final isSubmitting = loaded.isSubmittingKyc;
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle.light.copyWith(
@@ -273,12 +364,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Verification Status Banner
-                        _buildStatusCard(status),
-
-                        SizedBox(height: 16.h),
-
-                        // Simulation Dev Bar (For easy testing of approval lifecycle)
-                        _buildDevSimulationCard(status),
+                        _buildStatusCard(status, kyc),
 
                         SizedBox(height: 18.h),
 
@@ -287,12 +373,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
 
                         SizedBox(height: 18.h),
 
-                        // Section 2: Business Registration / Trade License
-                        _buildBrSection(status),
-
-                        SizedBox(height: 18.h),
-
-                        // Section 3: Trade & Professional Certificates
+                        // Section 2: Trade & Professional Certificates (Optional)
                         _buildSkillSection(status),
 
                         SizedBox(height: 20.h),
@@ -305,7 +386,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                 ),
 
                 // 3. Sticky Bottom Action Bar
-                _buildBottomBar(status),
+                _buildBottomBar(status, isSubmitting),
               ],
             ),
           ),
@@ -404,7 +485,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
   // ---------------------------------------------------------------------------
   // 2. STATUS CARD (UNDER REVIEW / VERIFIED / ACTION REQUIRED)
   // ---------------------------------------------------------------------------
-  Widget _buildStatusCard(VerificationStatus status) {
+  Widget _buildStatusCard(VerificationStatus status, KycVerificationEntity? kyc) {
     IconData statusIcon;
     String title;
     String description;
@@ -427,7 +508,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
       case VerificationStatus.rejected:
         statusIcon = Icons.error_outline_rounded;
         title = 'Action Required (Changes Requested)';
-        description = _service.adminFeedback ??
+        description = kyc?.rejectionReason ??
             'Your submitted document photos did not meet compliance requirements. Please review admin feedback below and re-upload.';
         break;
       case VerificationStatus.notSubmitted:
@@ -517,7 +598,37 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
             ),
           ),
 
-          if (status == VerificationStatus.pending && _service.submittedAt != null) ...[
+          if (status == VerificationStatus.rejected && kyc?.rejectionReason != null) ...[
+            SizedBox(height: 10.h),
+            Container(
+              padding: EdgeInsets.all(10.r),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      size: 16.r, color: const Color(0xFFDC2626)),
+                  SizedBox(width: 6.w),
+                  Expanded(
+                    child: Text(
+                      'Admin Note: ${kyc!.rejectionReason}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5.sp,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF991B1B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          if (status == VerificationStatus.pending) ...[
             SizedBox(height: 10.h),
             Container(
               padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
@@ -532,7 +643,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                       size: 13.r, color: AppColors.primary),
                   SizedBox(width: 5.w),
                   Text(
-                    'Submitted: ${_service.submittedAt!.hour.toString().padLeft(2, '0')}:${_service.submittedAt!.minute.toString().padLeft(2, '0')} • Expected review within 24h',
+                    'Expected review within 24h',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11.sp,
                       fontWeight: FontWeight.w600,
@@ -549,111 +660,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // 3. ADMIN SIMULATION CARD (TESTING SWITCHER)
-  // ---------------------------------------------------------------------------
-  Widget _buildDevSimulationCard(VerificationStatus status) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F3EB),
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: const Color(0xFFE0E5D7)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.admin_panel_settings_outlined,
-                  size: 15.r, color: AppColors.primary),
-              SizedBox(width: 5.w),
-              Text(
-                'Admin Simulation Tool (Quick Testing)',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5.sp,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primaryDark,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          Row(
-            children: [
-              Expanded(
-                child: _buildSimulationButton(
-                  label: 'Approve ✅',
-                  color: const Color(0xFF16A34A),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _service.simulateAdminApproval();
-                    DynamicIslandToast.showSuccess(
-                        context, 'Simulated Admin Approval: Account Verified!');
-                  },
-                ),
-              ),
-              SizedBox(width: 6.w),
-              Expanded(
-                child: _buildSimulationButton(
-                  label: 'Set Pending ⏳',
-                  color: const Color(0xFF2563EB),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _service.submitDocuments();
-                    DynamicIslandToast.showSuccess(
-                        context, 'Simulated Under Review state');
-                  },
-                ),
-              ),
-              SizedBox(width: 6.w),
-              Expanded(
-                child: _buildSimulationButton(
-                  label: 'Reject ❌',
-                  color: const Color(0xFFDC2626),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _service.simulateAdminRejection();
-                    DynamicIslandToast.showSuccess(
-                        context, 'Simulated Rejection state');
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSimulationButton({
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 6.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 10.5.sp,
-            fontWeight: FontWeight.w700,
-            color: color,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // 4. NIC SECTION
+  // 3. NIC SECTION
   // ---------------------------------------------------------------------------
   Widget _buildNicSection(VerificationStatus status) {
     return _buildSectionCard(
@@ -715,7 +722,6 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                       title: 'NIC Front Side',
                       onSelected: (path) {
                         setState(() => _localNicFront = path);
-                        _service.setNicFront(path);
                       },
                     );
                   },
@@ -732,7 +738,6 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                       title: 'NIC Back Side',
                       onSelected: (path) {
                         setState(() => _localNicBack = path);
-                        _service.setNicBack(path);
                       },
                     );
                   },
@@ -746,80 +751,11 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // 5. BUSINESS REGISTRATION SECTION
-  // ---------------------------------------------------------------------------
-  Widget _buildBrSection(VerificationStatus status) {
-    return _buildSectionCard(
-      title: '2. Business Registration / Trade License',
-      subtitle:
-          'Optional for sole proprietors & individual service providers',
-      isRequired: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Business Reg Number (Optional for sole proprietorships)',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textHeadline,
-            ),
-          ),
-          SizedBox(height: 6.h),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAF6),
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: const Color(0xFFE2E6D5)),
-            ),
-            child: TextField(
-              controller: _brController,
-              enabled: status != VerificationStatus.approved,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textHeadline,
-              ),
-              decoration: InputDecoration(
-                hintText: 'e.g. PV-00249182',
-                hintStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.5.sp,
-                  color: AppColors.textMuted,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 10.h),
-              ),
-            ),
-          ),
-          SizedBox(height: 14.h),
-          _buildUploadSlot(
-            title: 'Business Registration Document',
-            imagePath: _localBrDoc,
-            isFullWidth: true,
-            isVerified: status == VerificationStatus.approved,
-            onUpload: () {
-              _pickImageFor(
-                title: 'Business Registration Document',
-                onSelected: (path) {
-                  setState(() => _localBrDoc = path);
-                  _service.setBrDoc(path);
-                },
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // 6. SKILL CERTIFICATES SECTION
+  // 4. SKILL CERTIFICATES SECTION
   // ---------------------------------------------------------------------------
   Widget _buildSkillSection(VerificationStatus status) {
     return _buildSectionCard(
-      title: '3. Professional Skills & NVQ License',
+      title: '2. Professional Skills & NVQ License',
       subtitle: 'Increases customer trust and boosts quotation acceptance rate',
       isRequired: false,
       child: Column(
@@ -872,7 +808,6 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                 title: 'Trade Certificate',
                 onSelected: (path) {
                   setState(() => _localSkillCert = path);
-                  _service.setSkillCert(path);
                 },
               );
             },
@@ -963,7 +898,8 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
     bool isFullWidth = false,
     bool isVerified = false,
   }) {
-    final bool hasImage = imagePath != null;
+    final bool hasImage = imagePath != null && imagePath.isNotEmpty;
+    final bool isNetwork = hasImage && (imagePath.startsWith('http://') || imagePath.startsWith('https://'));
 
     return GestureDetector(
       onTap: isVerified ? null : onUpload,
@@ -985,30 +921,27 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
             ? Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.file(
-                    File(imagePath),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: const Color(0xFFF0F4E8),
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.insert_drive_file_rounded,
-                              color: AppColors.primary, size: 28.r),
-                          SizedBox(height: 4.h),
-                          Text(
-                            title,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textHeadline,
-                            ),
+                  isNetwork
+                      ? Image.network(
+                          imagePath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: const Color(0xFFF0F4E8),
+                            alignment: Alignment.center,
+                            child: Icon(Icons.insert_drive_file_rounded,
+                                color: AppColors.primary, size: 28.r),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
+                        )
+                      : Image.file(
+                          File(imagePath),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: const Color(0xFFF0F4E8),
+                            alignment: Alignment.center,
+                            child: Icon(Icons.insert_drive_file_rounded,
+                                color: AppColors.primary, size: 28.r),
+                          ),
+                        ),
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -1067,7 +1000,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                   ),
                   SizedBox(height: 2.h),
                   Text(
-                    'PNG, JPG up to 10MB',
+                    'PNG, JPG up to 5MB',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10.sp,
                       color: AppColors.textMuted,
@@ -1109,9 +1042,9 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // 7. BOTTOM STICKY ACTION BAR
+  // 5. BOTTOM STICKY ACTION BAR
   // ---------------------------------------------------------------------------
-  Widget _buildBottomBar(VerificationStatus status) {
+  Widget _buildBottomBar(VerificationStatus status, bool isSubmitting) {
     return Container(
       padding: EdgeInsets.fromLTRB(
         18.w,
@@ -1166,7 +1099,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                     borderRadius: BorderRadius.circular(14.r),
                   ),
                 ),
-                onPressed: _isSubmitting
+                onPressed: isSubmitting
                     ? null
                     : () {
                         if (status == VerificationStatus.approved) {
@@ -1180,7 +1113,7 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                           _submitForReview();
                         }
                       },
-                child: _isSubmitting
+                child: isSubmitting
                     ? SizedBox(
                         width: 20.r,
                         height: 20.r,
@@ -1206,7 +1139,9 @@ class _LicenseVerificationScreenState extends State<LicenseVerificationScreen> {
                                 ? 'Verified • Access Home'
                                 : (status == VerificationStatus.pending
                                     ? 'Under Admin Review'
-                                    : 'Submit Documents'),
+                                    : (status == VerificationStatus.rejected
+                                        ? 'Re-submit Documents'
+                                        : 'Submit Documents')),
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13.5.sp,
                               fontWeight: FontWeight.w800,
