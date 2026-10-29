@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/under_review_screen.dart';
@@ -47,10 +48,15 @@ class VerificationScreen extends StatefulWidget {
 
 class _VerificationScreenState extends State<VerificationScreen>
     with SingleTickerProviderStateMixin {
+  final ImagePicker _picker = ImagePicker();
+
   // Document state
   String? _nicFrontName;
+  String? _nicFrontPath;
   String? _nicBackName;
+  String? _nicBackPath;
   String? _brDocName;
+  String? _brDocPath;
 
   bool _isUploadingFront = false;
   bool _isUploadingBack = false;
@@ -136,40 +142,65 @@ class _VerificationScreenState extends State<VerificationScreen>
     });
   }
 
-  Future<void> _mockUpload(String docType) async {
+  Future<void> _pickDocument(String docType) async {
     HapticFeedback.lightImpact();
     setState(() {
       if (docType == 'front') _isUploadingFront = true;
       if (docType == 'back') _isUploadingBack = true;
       if (docType == 'br') _isUploadingBR = true;
     });
+    try {
+      final XFile? file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (file == null) return;
 
-    // Simulate progress upload
-    await Future.delayed(const Duration(milliseconds: 1400));
-
-    setState(() {
-      if (docType == 'front') {
-        _isUploadingFront = false;
-        _nicFrontName = 'NIC_Front_Scan.jpg';
+      setState(() {
+        if (docType == 'front') {
+          _nicFrontPath = file.path;
+          _nicFrontName = file.name;
+        } else if (docType == 'back') {
+          _nicBackPath = file.path;
+          _nicBackName = file.name;
+        } else if (docType == 'br') {
+          _brDocPath = file.path;
+          _brDocName = file.name;
+        }
+      });
+      _validateForm();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick document: $e')),
+        );
       }
-      if (docType == 'back') {
-        _isUploadingBack = false;
-        _nicBackName = 'NIC_Back_Scan.jpg';
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (docType == 'front') _isUploadingFront = false;
+          if (docType == 'back') _isUploadingBack = false;
+          if (docType == 'br') _isUploadingBR = false;
+        });
       }
-      if (docType == 'br') {
-        _isUploadingBR = false;
-        _brDocName = 'Business_Registration_Certificate.pdf';
-      }
-    });
-    _validateForm();
+    }
   }
 
   void _removeDoc(String docType) {
     HapticFeedback.selectionClick();
     setState(() {
-      if (docType == 'front') _nicFrontName = null;
-      if (docType == 'back') _nicBackName = null;
-      if (docType == 'br') _brDocName = null;
+      if (docType == 'front') {
+        _nicFrontName = null;
+        _nicFrontPath = null;
+      } else if (docType == 'back') {
+        _nicBackName = null;
+        _nicBackPath = null;
+      } else if (docType == 'br') {
+        _brDocName = null;
+        _brDocPath = null;
+      }
     });
     _validateForm();
   }
@@ -192,9 +223,9 @@ class _VerificationScreenState extends State<VerificationScreen>
         state: 'Not Provided',
         postalCode: widget.postalCode,
         country: 'Sri Lanka',
-        nicFrontPath: _nicFrontName,
-        nicBackPath: _nicBackName,
-        brCertificatePath: _brDocName,
+        nicFrontPath: _nicFrontPath,
+        nicBackPath: _nicBackPath,
+        brCertificatePath: _brDocPath,
         services: widget.services,
         profileImagePath: null,
       ),
@@ -471,7 +502,7 @@ class _VerificationScreenState extends State<VerificationScreen>
                                       _buildUploadCard(
                                         fileName: _nicFrontName,
                                         isUploading: _isUploadingFront,
-                                        onTap: () => _mockUpload('front'),
+                                        onTap: () => _pickDocument('front'),
                                         onRemove: () => _removeDoc('front'),
                                         label: 'Tap to upload NIC front image',
                                       ),
@@ -490,7 +521,7 @@ class _VerificationScreenState extends State<VerificationScreen>
                                       _buildUploadCard(
                                         fileName: _nicBackName,
                                         isUploading: _isUploadingBack,
-                                        onTap: () => _mockUpload('back'),
+                                        onTap: () => _pickDocument('back'),
                                         onRemove: () => _removeDoc('back'),
                                         label: 'Tap to upload NIC back image',
                                       ),
@@ -508,7 +539,7 @@ class _VerificationScreenState extends State<VerificationScreen>
                                       _buildUploadCard(
                                         fileName: _brDocName,
                                         isUploading: _isUploadingBR,
-                                        onTap: () => _mockUpload('br'),
+                                        onTap: () => _pickDocument('br'),
                                         onRemove: () => _removeDoc('br'),
                                         label: 'Tap to upload BR certificate (PDF/JPG)',
                                       ),

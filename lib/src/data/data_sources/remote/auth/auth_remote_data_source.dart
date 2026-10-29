@@ -1,6 +1,7 @@
 import 'package:provider_app/src/data/models/auth/auth_result_model.dart';
 import 'package:provider_app/src/data/models/auth/user_model.dart';
 import 'package:provider_app/src/domain/entities/auth/otp_session_entity.dart';
+export 'package:provider_app/core/errors/auth_exception.dart';
 
 abstract class AuthRemoteDataSource {
   Future<OtpSessionEntity> sendOtp({
@@ -45,12 +46,4 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<void> signOutFirebase();
-}
-
-class AuthException implements Exception {
-  final String message;
-  const AuthException(this.message);
-
-  @override
-  String toString() => message;
 }

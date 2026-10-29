@@ -3,16 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/presentation/screens/auth/otp_verification_screen.dart';
-import 'package:provider_app/src/presentation/widgets/dev_bypass_sheet.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider_app/src/presentation/blocs/auth/auth_bloc.dart';
 import 'package:provider_app/src/presentation/blocs/auth/auth_event.dart';
 import 'package:provider_app/src/presentation/blocs/auth/auth_state.dart';
-import 'package:provider_app/src/data/services/provider_session_service.dart';
 
 class CountryCode {
   final String flag;
@@ -247,29 +244,6 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
     final fullNumber = '${_selectedCountry.code} ${_phoneController.text}';
 
     context.read<AuthBloc>().add(SendOtpRequested(fullNumber));
-  }
-
-  void _handleDevLoginIndividual() {
-    HapticFeedback.mediumImpact();
-    ProviderSessionService.instance.switchToIndividual();
-    DevBypassSheet.bypassToHome(context, type: ProviderType.individual);
-  }
-
-  void _handleDevLoginCompany() {
-    HapticFeedback.mediumImpact();
-    ProviderSessionService.instance.switchToCompany();
-    DevBypassSheet.bypassToHome(context, type: ProviderType.company);
-  }
-
-  void _handleDevOptions() {
-    final fullNumber = _phoneController.text.trim().isNotEmpty
-        ? '${_selectedCountry.code} ${_phoneController.text.trim()}'
-        : DevBypassSheet.defaultTestPhone;
-
-    DevBypassSheet.show(
-      context,
-      currentPhoneNumber: fullNumber,
-    );
   }
 
   @override
@@ -528,23 +502,14 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
 
                                         const Spacer(),
 
-                                        // Send Code Button & Dev Bypass
-                                        Padding(
-                                          padding: EdgeInsets.only(
-                                            bottom: 20.h,
-                                            top: 16.h,
+                                          // Send Code Button
+                                          Padding(
+                                            padding: EdgeInsets.only(
+                                              bottom: 20.h,
+                                              top: 16.h,
+                                            ),
+                                            child: _buildSendCodeButton(isLoading),
                                           ),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              _buildSendCodeButton(isLoading),
-                                              if (kDebugMode || !kReleaseMode) ...[
-                                                SizedBox(height: 12.h),
-                                                _buildDevBypassButton(),
-                                              ],
-                                            ],
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   ),
@@ -729,208 +694,6 @@ class _MobileNumberScreenState extends State<MobileNumberScreen>
                   ),
                 ],
               ),
-      ),
-    );
-  }
-
-  Widget _buildDevBypassButton() {
-    return _buildDevRoleSelectionSection();
-  }
-
-  Widget _buildDevRoleSelectionSection() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(
-          color: const Color(0xFFFFB74D),
-          width: 1.2,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(5.r),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEDD5),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Icon(
-                  Icons.bolt_rounded,
-                  color: const Color(0xFFEA580C),
-                  size: 15.r,
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Text(
-                  'DEV LOGIN • SELECT PROVIDER TYPE',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFFC2410C),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                tooltip: 'More Screen Jumps',
-                icon: Icon(
-                  Icons.more_horiz_rounded,
-                  color: const Color(0xFFC2410C),
-                  size: 20.r,
-                ),
-                onPressed: _handleDevOptions,
-              ),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              // Button 1: Individual Provider
-              Expanded(
-                child: Material(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16.r),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16.r),
-                    onTap: _handleDevLoginIndividual,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 11.h,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16.r),
-                        border: Border.all(
-                          color: const Color(0xFF86EFAC),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(5.r),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFDCFCE7),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.person_rounded,
-                                  size: 15.r,
-                                  color: const Color(0xFF16A34A),
-                                ),
-                              ),
-                              SizedBox(width: 6.w),
-                              Expanded(
-                                child: Text(
-                                  'Individual',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13.5.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF166534),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 5.h),
-                          Text(
-                            'Full Unrestricted App',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10.5.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 8.w),
-              // Button 2: Business / Company Provider
-              Expanded(
-                child: Material(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16.r),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16.r),
-                    onTap: _handleDevLoginCompany,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 11.h,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16.r),
-                        border: Border.all(
-                          color: const Color(0xFF93C5FD),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(5.r),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFDBEAFE),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.business_rounded,
-                                  size: 15.r,
-                                  color: const Color(0xFF2563EB),
-                                ),
-                              ),
-                              SizedBox(width: 6.w),
-                              Expanded(
-                                child: Text(
-                                  'Business / Co.',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13.5.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF1E40AF),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 5.h),
-                          Text(
-                            'Access Controlled App',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10.5.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

@@ -1,5 +1,6 @@
+// ignore_for_file: prefer_initializing_formals
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:provider_app/src/data/repositories/auth/mock_auth_repository.dart';
+import 'package:provider_app/core/di/service_locator.dart';
 import 'package:provider_app/src/domain/repositories/auth/auth_repository.dart';
 import 'package:provider_app/src/domain/usecases/auth/complete_profile_usecase.dart';
 import 'package:provider_app/src/domain/usecases/auth/login_with_firebase_usecase.dart';
@@ -19,7 +20,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LogoutUsecase _logout;
 
   factory AuthBloc.createDefault({AuthRepository? repository}) {
-    final repo = repository ?? MockAuthRepository();
+    final repo = repository ?? sl<AuthRepository>();
     return AuthBloc(
       sendOtp: SendOtpUsecase(repo),
       resendOtp: ResendOtpUsecase(repo),

@@ -21,9 +21,8 @@ class DeviceNameService {
 
       if (Platform.isIOS) {
         final info = await _deviceInfo.iosInfo;
-        return info.utsname.machine.isNotEmpty
-            ? info.utsname.machine
-            : info.name;
+        final machine = info.utsname.machine;
+        return (machine.isNotEmpty) ? machine : info.name;
       }
     } catch (_) {
       // Fall back to the platform name below.

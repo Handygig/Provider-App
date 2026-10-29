@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:customer_app/core/constants/app_local_keys.dart';
+import 'package:provider_app/core/constants/app_local_keys.dart';
 
 class AuthManager {
   AuthManager._();
