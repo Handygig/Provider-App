@@ -25,6 +25,7 @@ import 'package:provider_app/src/domain/usecases/profile/get_provider_dashboard_
 import 'package:provider_app/src/domain/usecases/profile/get_provider_profile_usecase.dart';
 import 'package:provider_app/src/domain/usecases/profile/submit_provider_kyc_usecase.dart';
 import 'package:provider_app/src/domain/usecases/profile/toggle_provider_availability_usecase.dart';
+import 'package:provider_app/src/domain/usecases/profile/update_provider_profile_usecase.dart';
 import 'package:provider_app/src/presentation/cubits/profile/profile_cubit.dart';
 
 final sl = GetIt.instance;

@@ -78,6 +78,7 @@ class ProviderProfileEntity {
   final String availability;
   final bool isOnline;
   final String approvalStatus;
+  final String? regNumber;
   final String? addressLine1;
   final String? addressLine2;
   final String? city;
@@ -107,6 +108,7 @@ class ProviderProfileEntity {
     required this.availability,
     required this.isOnline,
     required this.approvalStatus,
+    this.regNumber,
     this.addressLine1,
     this.addressLine2,
     this.city,
