@@ -4,8 +4,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/data/services/provider_session_service.dart';
-import 'package:provider_app/src/domain/models/job_model.dart';
+import 'package:provider_app/src/data/models/jobs/job_model.dart';
+import 'package:provider_app/src/presentation/screens/jobs/utils/job_ui_helper.dart';
 import 'package:provider_app/src/presentation/screens/jobs/job_details_screen.dart';
+import 'package:provider_app/core/di/service_locator.dart';
+import 'package:provider_app/src/presentation/cubits/jobs/jobs_cubit.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 import 'package:provider_app/src/presentation/widgets/incoming_quotation_request_drawer.dart';
 
@@ -59,242 +62,44 @@ class _JobsScreenState extends State<JobsScreen>
       }
     });
 
-    _jobs = [
-      // 1. To Quote
-      JobModel(
-        id: 'JOB-3041',
-        serviceTitle: 'Bathroom Plumbing & Fixture Fitting',
-        category: 'Plumbing',
-        customerName: 'Saman Kumara',
-        customerRating: 4.9,
-        customerReviewsCount: 38,
-        address: 'No 45, Alfred House Gardens, Colombo 03',
-        distance: '2.4 km away',
-        requestedTime: 'Inspection Today • 04:30 PM',
-        description:
-            'Need inspection and quotation for leaking main pipeline and installation of 2 shower mixer units.',
-        estimatedBudget: 80.00,
-        paymentMethod: 'Cash on Delivery',
-        status: JobCategory.toQuote,
-      ),
-      JobModel(
-        id: 'JOB-3042',
-        serviceTitle: 'Split AC Outdoor Compressor Gas Leak',
-        category: 'AC Repair',
-        customerName: 'Dilani Fernando',
-        customerRating: 4.8,
-        customerReviewsCount: 19,
-        address: '12/4 Ward Place, Colombo 07',
-        distance: '3.8 km away',
-        requestedTime: 'Urgent • Needs Quote by 6 PM',
-        description:
-            'Inverter AC unit outdoor fan vibrating violently and low cooling efficiency. Need cost estimate for fix.',
-        estimatedBudget: 65.00,
-        paymentMethod: 'Credit / Debit Card',
-        status: JobCategory.toQuote,
-      ),
-      JobModel(
-        id: 'JOB-3043',
-        serviceTitle: 'Electrical Sub-panel Rewiring & MCB Fix',
-        category: 'Electrical',
-        customerName: 'Rohan Wickremasinghe',
-        customerRating: 5.0,
-        customerReviewsCount: 52,
-        address: '78 Nawala Road, Nugegoda',
-        distance: '5.1 km away',
-        requestedTime: 'Tomorrow Morning',
-        description:
-            'Circuit breaker trips repeatedly whenever multiple appliances are turned on. Quote needed for diagnostic & rewire.',
-        estimatedBudget: 110.00,
-        paymentMethod: 'Cash on Delivery',
-        status: JobCategory.toQuote,
-      ),
-
-      // 2. Pending Approve
-      JobModel(
-        id: 'JOB-2980',
-        serviceTitle: 'Kitchen Waste Drain Deep Clearing',
-        category: 'Plumbing',
-        customerName: 'Ayesha Mohamed',
-        customerRating: 4.9,
-        customerReviewsCount: 14,
-        address: 'Bambalapitiya Flats, Colombo 04',
-        distance: '1.8 km away',
-        requestedTime: 'Quoted 2 hrs ago • Awaiting Customer',
-        description:
-            'Deep chemical clearing with replacement of rubber trap and sink connector joints.',
-        quotedAmount: 55.00,
-        quoteNotes: 'Includes material costs and 30-day service warranty.',
-        paymentMethod: 'Cash on Delivery',
-        status: JobCategory.pendingApprove,
-      ),
-      JobModel(
-        id: 'JOB-2977',
-        serviceTitle: 'Commercial Inverter AC Full Service',
-        category: 'AC Repair',
-        customerName: 'Apex Office Hub',
-        customerRating: 4.7,
-        customerReviewsCount: 89,
-        address: 'Duplication Road, Colombo 03',
-        distance: '3.0 km away',
-        requestedTime: 'Quoted Yesterday • Customer Reviewing',
-        description:
-            'Chemical coil wash, blower cleaning, electrical contact check, and R32 refrigerant gas charge.',
-        quotedAmount: 135.00,
-        quoteNotes: 'Quoted for 2 technicians, scheduled for Saturday.',
-        paymentMethod: 'Credit / Debit Card',
-        status: JobCategory.pendingApprove,
-      ),
-
-      // 3. To Start (Customer Approved Quote!)
-      JobModel(
-        id: 'JOB-2970',
-        serviceTitle: 'Main Breaker Box Diagnostic & Replacement',
-        category: 'Electrical',
-        customerName: 'Kavinda Perera',
-        customerRating: 4.9,
-        customerReviewsCount: 27,
-        address: '42 Havelock Road, Colombo 05',
-        distance: '2.5 km away',
-        requestedTime: 'Approved • Ready to Start',
-        description:
-            'Customer accepted quotation of LKR 85.00 for main breaker replacement. Ready to dispatch and commence.',
-        quotedAmount: 85.00,
-        paymentMethod: 'Credit / Debit Card',
-        status: JobCategory.toStart,
-      ),
-      JobModel(
-        id: 'JOB-2968',
-        serviceTitle: 'Emergency Sink Pipeline Burst & Seal',
-        category: 'Plumbing',
-        customerName: 'Malini Senanayake',
-        customerRating: 5.0,
-        customerReviewsCount: 41,
-        address: '15 Gregory\'s Road, Colombo 07',
-        distance: '1.9 km away',
-        requestedTime: 'Approved • Scheduled Today 4:00 PM',
-        description:
-            'Client accepted quotation of LKR 65.00. Ready to begin on-site repair.',
-        quotedAmount: 65.00,
-        paymentMethod: 'Cash on Delivery',
-        status: JobCategory.toStart,
-      ),
-
-      // 4. Ongoing
-      JobModel(
-        id: 'JOB-2950',
-        serviceTitle: 'Water Pressure Pump Motor Servicing',
-        category: 'Plumbing',
-        customerName: 'Dr. Mohan Lal',
-        customerRating: 5.0,
-        customerReviewsCount: 22,
-        address: 'Rosmead Place, Colombo 07',
-        distance: '1.2 km away',
-        requestedTime: 'In Progress • Started at 2:00 PM',
-        description:
-            'Pressure sensor replacement and capacitor swap on automatic booster pump.',
-        quotedAmount: 90.00,
-        extraAmount: 25.00,
-        extraReason: 'Replacement brass pressure sensor valve & sealant',
-        extraStatus: ExtraApprovalStatus.pending,
-        status: JobCategory.ongoing,
-      ),
-      JobModel(
-        id: 'JOB-2944',
-        serviceTitle: 'LED Recessed Ceiling Downlights Setup',
-        category: 'Electrical',
-        customerName: 'Chathurika Silva',
-        customerRating: 4.8,
-        customerReviewsCount: 31,
-        address: 'Baseline Road, Colombo 09',
-        distance: '4.2 km away',
-        requestedTime: 'En Route • Arriving in 15 mins',
-        description:
-            'Drilling ceiling points, running conceal wires and installing smart dimmer toggle switches.',
-        quotedAmount: 120.00,
-        status: JobCategory.ongoing,
-      ),
-
-      // 4. Finished
-      JobModel(
-        id: 'JOB-2895',
-        serviceTitle: 'Overhead Water Tank Deep Sanitization',
-        category: 'Cleaning',
-        customerName: 'Nimali Senaratne',
-        customerRating: 5.0,
-        customerReviewsCount: 18,
-        address: 'Vihara Mawatha, Colombo 03',
-        distance: '1.5 km away',
-        requestedTime: 'Completed Today',
-        description:
-            'High-pressure chemical wash and sterilization of 1000L tank.',
-        quotedAmount: 42.00,
-        status: JobCategory.finished,
-        completionDate: 'Today, Oct 21',
-        jobDate: DateTime(2026, 10, 21),
-        finalRating: 5.0,
-        clientFeedback: 'Sparkling clean! Very satisfied.',
-      ),
-      JobModel(
-        id: 'JOB-2891',
-        serviceTitle: 'Emergency Water Tank Float Valve Replacement',
-        category: 'Plumbing',
-        customerName: 'Praveen Jayasuriya',
-        customerRating: 5.0,
-        customerReviewsCount: 15,
-        address: 'Havelock Town, Colombo 05',
-        distance: '2.7 km away',
-        requestedTime: 'Completed Oct 19',
-        description:
-            'Replaced brass high-pressure ball valve and overflow discharge pipe.',
-        quotedAmount: 48.00,
-        status: JobCategory.finished,
-        completionDate: 'Oct 19, 2026',
-        jobDate: DateTime(2026, 10, 19),
-        finalRating: 5.0,
-        clientFeedback:
-            'Super quick response and fixed the overflow within 30 minutes! Highly recommended.',
-      ),
-      JobModel(
-        id: 'JOB-2860',
-        serviceTitle: 'Split Unit Gas Leak Brazing & Vacuuming',
-        category: 'AC Repair',
-        customerName: 'Mahesh De Mel',
-        customerRating: 4.9,
-        customerReviewsCount: 44,
-        address: 'Thimbirigasyaya Road, Colombo 05',
-        distance: '3.5 km away',
-        requestedTime: 'Completed Oct 10',
-        description:
-            'Copper joint brazing, nitrogen pressure test, vacuum and R410A refrigerant filling.',
-        quotedAmount: 85.00,
-        status: JobCategory.finished,
-        completionDate: 'Oct 10, 2026',
-        jobDate: DateTime(2026, 10, 10),
-        finalRating: 4.9,
-        clientFeedback:
-            'Very professional technician. The cooling is fantastic now.',
-      ),
-      JobModel(
-        id: 'JOB-2820',
-        serviceTitle: 'Tripping MCB Replacement & Earth Relay Test',
-        category: 'Electrical',
-        customerName: 'Kavinda Perera',
-        customerRating: 5.0,
-        customerReviewsCount: 29,
-        address: 'Stanley Thilakarathne Mawatha, Nugegoda',
-        distance: '6.0 km away',
-        requestedTime: 'Completed Sep 25',
-        description:
-            'Replaced faulty 32A double pole breaker and tested RCCB trip response threshold.',
-        quotedAmount: 65.00,
-        status: JobCategory.finished,
-        completionDate: 'Sep 25, 2026',
-        jobDate: DateTime(2026, 9, 25),
-        finalRating: 5.0,
-        clientFeedback: 'Solved our electrical trip issue instantly.',
-      ),
-    ];
+    final cubitJobs = sl<JobsCubit>().jobs;
+    _jobs = cubitJobs.map((j) {
+      if (j is JobModel) return j;
+      return JobModel(
+        id: j.id,
+        serviceTitle: j.serviceTitle,
+        category: j.category,
+        customerName: j.customerName,
+        customerPhone: j.customerPhone,
+        customerRating: j.customerRating,
+        customerReviewsCount: j.customerReviewsCount,
+        address: j.address,
+        city: j.city,
+        distance: j.distance,
+        requestedTime: j.requestedTime,
+        description: j.description,
+        estimatedBudget: j.estimatedBudget,
+        quotedAmount: j.quotedAmount,
+        quoteNotes: j.quoteNotes,
+        status: j.status,
+        completionDate: j.completionDate,
+        finalRating: j.finalRating,
+        clientFeedback: j.clientFeedback,
+        extraAmount: j.extraAmount,
+        extraReason: j.extraReason,
+        extraStatus: j.extraStatus,
+        paymentMethod: j.paymentMethod,
+        jobDate: j.jobDate,
+        orderType: j.orderType,
+        scheduledDate: j.scheduledDate,
+        scheduledTimeSlot: j.scheduledTimeSlot,
+        latitude: j.latitude,
+        longitude: j.longitude,
+        isCompanyAssigned: j.isCompanyAssigned,
+        assignedCompanyName: j.assignedCompanyName,
+        companyDispatchNote: j.companyDispatchNote,
+      );
+    }).toList();
   }
 
   @override

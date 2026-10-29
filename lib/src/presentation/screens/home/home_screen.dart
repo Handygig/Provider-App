@@ -9,7 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
-import 'package:provider_app/src/domain/models/job_model.dart';
+import 'package:provider_app/src/data/models/jobs/job_model.dart';
 import 'package:provider_app/src/data/services/working_hours_coverage_service.dart';
 import 'package:provider_app/src/presentation/screens/jobs/job_details_screen.dart';
 import 'package:provider_app/src/presentation/screens/jobs/jobs_screen.dart';

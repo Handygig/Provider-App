@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider_app/config/router/app_router.dart';
+import 'package:provider_app/config/router/app_routes.dart';
 import 'package:provider_app/core/constants/app_endpoints.dart';
 import 'package:provider_app/core/services/auth_manager.dart';
 import 'package:provider_app/core/services/language_manager.dart';
@@ -74,6 +76,7 @@ class DioClient {
   static void _handleUnauthorized() async {
     debugPrint('⚠️ [DioClient] Unauthorized (401) — clearing provider session.');
     await AuthManager.logout();
+    AppRouter.router.go(AppRoutes.welcome);
   }
 }
 

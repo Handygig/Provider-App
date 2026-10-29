@@ -32,3 +32,8 @@ class CancelledFailure extends Failure {
     super.stackTrace,
   });
 }
+
+class ServerFailure extends Failure {
+  const ServerFailure([String message = 'Server error', StackTrace? stackTrace])
+      : super(errorMessage: message, stackTrace: stackTrace);
+}

@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/data/services/payout_service.dart';
-import 'package:provider_app/src/domain/models/bank_account_model.dart';
+import 'package:provider_app/src/data/models/payout/bank_account_model.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 
 class BankPayoutDetailsScreen extends StatefulWidget {
@@ -1351,7 +1351,7 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
               onPressed: () async {
                 Navigator.pop(ctx);
                 final success = await _service.deleteAccount(account.id);
-                if (!context.mounted) return;
+                if (!mounted) return;
                 if (success) {
                   DynamicIslandToast.showSuccess(
                     context,

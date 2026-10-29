@@ -136,6 +136,8 @@ class ProviderProfileEntity {
   bool get isApproved => approvalStatus.toLowerCase() == 'approved';
   bool get isPending => approvalStatus.toLowerCase() == 'pending';
   bool get isRejected => approvalStatus.toLowerCase() == 'rejected';
+  bool get isVerified => kyc?.isApproved ?? (approvalStatus.toLowerCase() == 'approved');
+  String? get nicNumber => kyc?.nicNumber;
 
   String get activeServicesSummary {
     if (serviceCategories.isEmpty) return 'No services configured';

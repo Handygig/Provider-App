@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/data/services/managed_services_service.dart';
-import 'package:provider_app/src/domain/models/service_skill_model.dart';
+import 'package:provider_app/src/data/models/services/service_skill_model.dart';
 import 'package:provider_app/src/presentation/cubits/profile/profile_cubit.dart';
 import 'package:provider_app/src/presentation/cubits/profile/profile_state.dart';
 import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';

@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:equatable/equatable.dart';
 
 enum JobCategory {
   toQuote,
@@ -39,51 +38,6 @@ extension JobCategoryExtension on JobCategory {
         return 'Completed';
     }
   }
-
-  Color get color {
-    switch (this) {
-      case JobCategory.toQuote:
-        return const Color(0xFFEA580C);
-      case JobCategory.pendingApprove:
-        return const Color(0xFF2563EB);
-      case JobCategory.toStart:
-        return const Color(0xFF0D9488);
-      case JobCategory.ongoing:
-        return const Color(0xFF16A34A);
-      case JobCategory.finished:
-        return const Color(0xFF7C3AED);
-    }
-  }
-
-  Color get backgroundColor {
-    switch (this) {
-      case JobCategory.toQuote:
-        return const Color(0xFFFFF7ED);
-      case JobCategory.pendingApprove:
-        return const Color(0xFFEFF6FF);
-      case JobCategory.toStart:
-        return const Color(0xFFF0FDFA);
-      case JobCategory.ongoing:
-        return const Color(0xFFF0FDF4);
-      case JobCategory.finished:
-        return const Color(0xFFF5F3FF);
-    }
-  }
-
-  IconData get icon {
-    switch (this) {
-      case JobCategory.toQuote:
-        return Icons.request_quote_rounded;
-      case JobCategory.pendingApprove:
-        return Icons.hourglass_top_rounded;
-      case JobCategory.toStart:
-        return Icons.play_circle_outline_rounded;
-      case JobCategory.ongoing:
-        return Icons.handyman_rounded;
-      case JobCategory.finished:
-        return Icons.verified_rounded;
-    }
-  }
 }
 
 enum ExtraApprovalStatus {
@@ -104,19 +58,6 @@ extension ExtraApprovalStatusExtension on ExtraApprovalStatus {
         return 'Approved by Customer';
       case ExtraApprovalStatus.rejected:
         return 'Declined by Customer';
-    }
-  }
-
-  Color get color {
-    switch (this) {
-      case ExtraApprovalStatus.none:
-        return AppColors.textMuted;
-      case ExtraApprovalStatus.pending:
-        return const Color(0xFFD97706);
-      case ExtraApprovalStatus.approved:
-        return const Color(0xFF16A34A);
-      case ExtraApprovalStatus.rejected:
-        return const Color(0xFFDC2626);
     }
   }
 }
@@ -144,27 +85,9 @@ extension OrderTypeExtension on OrderType {
         return 'SCHEDULED BOOKING';
     }
   }
-
-  Color get color {
-    switch (this) {
-      case OrderType.instant:
-        return const Color(0xFFEA580C);
-      case OrderType.scheduled:
-        return const Color(0xFF2563EB);
-    }
-  }
-
-  Color get backgroundColor {
-    switch (this) {
-      case OrderType.instant:
-        return const Color(0xFFFFF7ED);
-      case OrderType.scheduled:
-        return const Color(0xFFEFF6FF);
-    }
-  }
 }
 
-class JobModel {
+class JobEntity extends Equatable {
   final String id;
   final String serviceTitle;
   final String category;
@@ -178,15 +101,15 @@ class JobModel {
   final String requestedTime;
   final String description;
   final double? estimatedBudget;
-  double? quotedAmount;
-  String? quoteNotes;
-  JobCategory status;
-  String? completionDate;
-  double? finalRating;
-  String? clientFeedback;
-  double? extraAmount;
-  String? extraReason;
-  ExtraApprovalStatus extraStatus;
+  final double? quotedAmount;
+  final String? quoteNotes;
+  final JobCategory status;
+  final String? completionDate;
+  final double? finalRating;
+  final String? clientFeedback;
+  final double? extraAmount;
+  final String? extraReason;
+  final ExtraApprovalStatus extraStatus;
   final String paymentMethod;
   final DateTime? jobDate;
   final OrderType? orderType;
@@ -198,7 +121,7 @@ class JobModel {
   final String? assignedCompanyName;
   final String? companyDispatchNote;
 
-  JobModel({
+  const JobEntity({
     required this.id,
     required this.serviceTitle,
     required this.category,
@@ -233,8 +156,10 @@ class JobModel {
     this.companyDispatchNote,
   });
 
-  bool get isAssignedByCompany => isCompanyAssigned || assignedCompanyName != null;
-  String get effectiveCompanyName => assignedCompanyName ?? 'Apex Home Solutions Pvt Ltd';
+  bool get isAssignedByCompany =>
+      isCompanyAssigned || assignedCompanyName != null;
+  String get effectiveCompanyName =>
+      assignedCompanyName ?? 'Apex Home Solutions Pvt Ltd';
 
   double get effectiveLatitude => latitude ?? 6.9034;
   double get effectiveLongitude => longitude ?? 79.8546;
@@ -337,33 +262,110 @@ class JobModel {
       extraAmount != null &&
       extraAmount! > 0;
 
-  IconData get categoryIcon {
-    switch (category.toLowerCase()) {
-      case 'plumbing':
-        return Icons.plumbing_rounded;
-      case 'ac repair':
-      case 'hvac':
-        return Icons.hvac_rounded;
-      case 'electrical':
-        return Icons.electrical_services_rounded;
-      case 'cleaning':
-        return Icons.cleaning_services_rounded;
-      default:
-        return Icons.handyman_rounded;
-    }
+  JobEntity copyWith({
+    String? id,
+    String? serviceTitle,
+    String? category,
+    String? customerName,
+    String? customerPhone,
+    double? customerRating,
+    int? customerReviewsCount,
+    String? address,
+    String? city,
+    String? distance,
+    String? requestedTime,
+    String? description,
+    double? estimatedBudget,
+    double? quotedAmount,
+    String? quoteNotes,
+    JobCategory? status,
+    String? completionDate,
+    double? finalRating,
+    String? clientFeedback,
+    double? extraAmount,
+    String? extraReason,
+    ExtraApprovalStatus? extraStatus,
+    String? paymentMethod,
+    DateTime? jobDate,
+    OrderType? orderType,
+    DateTime? scheduledDate,
+    String? scheduledTimeSlot,
+    double? latitude,
+    double? longitude,
+    bool? isCompanyAssigned,
+    String? assignedCompanyName,
+    String? companyDispatchNote,
+  }) {
+    return JobEntity(
+      id: id ?? this.id,
+      serviceTitle: serviceTitle ?? this.serviceTitle,
+      category: category ?? this.category,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      customerRating: customerRating ?? this.customerRating,
+      customerReviewsCount:
+          customerReviewsCount ?? this.customerReviewsCount,
+      address: address ?? this.address,
+      city: city ?? this.city,
+      distance: distance ?? this.distance,
+      requestedTime: requestedTime ?? this.requestedTime,
+      description: description ?? this.description,
+      estimatedBudget: estimatedBudget ?? this.estimatedBudget,
+      quotedAmount: quotedAmount ?? this.quotedAmount,
+      quoteNotes: quoteNotes ?? this.quoteNotes,
+      status: status ?? this.status,
+      completionDate: completionDate ?? this.completionDate,
+      finalRating: finalRating ?? this.finalRating,
+      clientFeedback: clientFeedback ?? this.clientFeedback,
+      extraAmount: extraAmount ?? this.extraAmount,
+      extraReason: extraReason ?? this.extraReason,
+      extraStatus: extraStatus ?? this.extraStatus,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      jobDate: jobDate ?? this.jobDate,
+      orderType: orderType ?? this.orderType,
+      scheduledDate: scheduledDate ?? this.scheduledDate,
+      scheduledTimeSlot: scheduledTimeSlot ?? this.scheduledTimeSlot,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      isCompanyAssigned: isCompanyAssigned ?? this.isCompanyAssigned,
+      assignedCompanyName: assignedCompanyName ?? this.assignedCompanyName,
+      companyDispatchNote: companyDispatchNote ?? this.companyDispatchNote,
+    );
   }
 
-  Color get categoryColor {
-    switch (category.toLowerCase()) {
-      case 'plumbing':
-        return const Color(0xFF0284C7);
-      case 'ac repair':
-      case 'hvac':
-        return AppColors.primary;
-      case 'electrical':
-        return const Color(0xFFD97706);
-      default:
-        return AppColors.primary;
-    }
-  }
+  @override
+  List<Object?> get props => [
+        id,
+        serviceTitle,
+        category,
+        customerName,
+        customerPhone,
+        customerRating,
+        customerReviewsCount,
+        address,
+        city,
+        distance,
+        requestedTime,
+        description,
+        estimatedBudget,
+        quotedAmount,
+        quoteNotes,
+        status,
+        completionDate,
+        finalRating,
+        clientFeedback,
+        extraAmount,
+        extraReason,
+        extraStatus,
+        paymentMethod,
+        jobDate,
+        orderType,
+        scheduledDate,
+        scheduledTimeSlot,
+        latitude,
+        longitude,
+        isCompanyAssigned,
+        assignedCompanyName,
+        companyDispatchNote,
+      ];
 }

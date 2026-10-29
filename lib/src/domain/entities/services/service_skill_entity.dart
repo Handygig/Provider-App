@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:equatable/equatable.dart';
 
-class ServiceSkillModel {
+class ServiceSkillEntity extends Equatable {
   final String id;
   final String title;
   final String category;
-  final IconData icon;
-  final Color primaryColor;
+  final String iconName;
   final bool isEnabled;
   final String experienceLevel; // 'Beginner' | 'Intermediate' | 'Expert / Master'
   final double baseRatePerHour; // in LKR
@@ -15,12 +14,11 @@ class ServiceSkillModel {
   final String? description;
   final String? imageUrl;
 
-  const ServiceSkillModel({
+  const ServiceSkillEntity({
     required this.id,
     required this.title,
     required this.category,
-    required this.icon,
-    this.primaryColor = const Color(0xFF4A5528),
+    this.iconName = 'handyman',
     this.isEnabled = false,
     this.experienceLevel = 'Expert / Master',
     this.baseRatePerHour = 2500.0,
@@ -31,12 +29,11 @@ class ServiceSkillModel {
     this.imageUrl,
   });
 
-  ServiceSkillModel copyWith({
+  ServiceSkillEntity copyWith({
     String? id,
     String? title,
     String? category,
-    IconData? icon,
-    Color? primaryColor,
+    String? iconName,
     bool? isEnabled,
     String? experienceLevel,
     double? baseRatePerHour,
@@ -46,12 +43,11 @@ class ServiceSkillModel {
     String? description,
     String? imageUrl,
   }) {
-    return ServiceSkillModel(
+    return ServiceSkillEntity(
       id: id ?? this.id,
       title: title ?? this.title,
       category: category ?? this.category,
-      icon: icon ?? this.icon,
-      primaryColor: primaryColor ?? this.primaryColor,
+      iconName: iconName ?? this.iconName,
       isEnabled: isEnabled ?? this.isEnabled,
       experienceLevel: experienceLevel ?? this.experienceLevel,
       baseRatePerHour: baseRatePerHour ?? this.baseRatePerHour,
@@ -62,4 +58,20 @@ class ServiceSkillModel {
       imageUrl: imageUrl ?? this.imageUrl,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        id,
+        title,
+        category,
+        iconName,
+        isEnabled,
+        experienceLevel,
+        baseRatePerHour,
+        subSkills,
+        activeSubSkills,
+        isVerified,
+        description,
+        imageUrl,
+      ];
 }

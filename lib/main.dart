@@ -5,13 +5,20 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'config/router/app_router.dart';
 import 'config/theme/app_theme.dart';
 import 'core/di/service_locator.dart';
 import 'core/services/auth_manager.dart';
 import 'core/services/language_manager.dart';
+
+// Blocs & Cubits
 import 'src/presentation/blocs/auth/auth_bloc.dart';
-import 'src/presentation/screens/welcome/welcome_screen.dart';
-import 'src/presentation/screens/home/home_screen.dart';
+import 'src/presentation/cubits/profile/profile_cubit.dart';
+import 'src/presentation/cubits/jobs/jobs_cubit.dart';
+import 'src/presentation/cubits/payout/payout_cubit.dart';
+import 'src/presentation/cubits/services/managed_services_cubit.dart';
+import 'src/presentation/cubits/coverage/coverage_cubit.dart';
+import 'src/presentation/cubits/notifications/notification_preferences_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,29 +41,48 @@ class ProviderApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AuthBloc>(
-      create: (context) => sl<AuthBloc>(),
-      child: ScreenUtilInit(
-        designSize: const Size(430, 932),
-        minTextAdapt: true,
-        splitScreenMode: true,
-        builder: (context, child) {
-          return ValueListenableBuilder<Locale>(
+    return ScreenUtilInit(
+      designSize: const Size(430, 932),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider<AuthBloc>(create: (context) => sl<AuthBloc>()),
+            BlocProvider<ProfileCubit>(
+              create: (context) => sl<ProfileCubit>()..loadProfile(),
+            ),
+            BlocProvider<JobsCubit>(
+              create: (context) => sl<JobsCubit>()..loadJobs(),
+            ),
+            BlocProvider<PayoutCubit>(
+              create: (context) => sl<PayoutCubit>()..loadAccounts(),
+            ),
+            BlocProvider<ManagedServicesCubit>(
+              create: (context) => sl<ManagedServicesCubit>()..loadServices(),
+            ),
+            BlocProvider<CoverageCubit>(
+              create: (context) => sl<CoverageCubit>()..loadCoverage(),
+            ),
+            BlocProvider<NotificationPreferencesCubit>(
+              create: (context) =>
+                  sl<NotificationPreferencesCubit>()..loadPreferences(),
+            ),
+          ],
+          child: ValueListenableBuilder<Locale>(
             valueListenable: LanguageManager.localeNotifier,
             builder: (context, locale, _) {
-              return MaterialApp(
+              return MaterialApp.router(
                 title: 'Provider App',
                 debugShowCheckedModeBanner: false,
                 theme: AppTheme.lightTheme,
                 locale: locale,
-                home: AuthManager.isLoggedIn
-                    ? const HomeScreen()
-                    : const WelcomeScreen(),
+                routerConfig: AppRouter.router,
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

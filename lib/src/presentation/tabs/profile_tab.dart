@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_assets.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/core/di/service_locator.dart';
+import 'package:provider_app/src/domain/entities/profile/provider_profile_entity.dart';
 import 'package:provider_app/src/presentation/blocs/auth/auth_bloc.dart';
 import 'package:provider_app/src/presentation/blocs/auth/auth_event.dart';
 import 'package:provider_app/src/presentation/cubits/profile/profile_cubit.dart';

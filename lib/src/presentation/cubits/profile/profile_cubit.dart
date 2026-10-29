@@ -9,24 +9,19 @@ import 'package:provider_app/src/domain/usecases/profile/update_provider_profile
 import 'package:provider_app/src/presentation/cubits/profile/profile_state.dart';
 
 class ProfileCubit extends Cubit<ProfileState> {
-  final GetProviderProfileUseCase _getProfileUseCase;
-  final GetProviderDashboardUseCase _getDashboardUseCase;
-  final ToggleProviderAvailabilityUseCase _toggleAvailabilityUseCase;
-  final SubmitProviderKycUseCase _submitProviderKycUseCase;
-  final UpdateProviderProfileUseCase _updateProfileUseCase;
+  final GetProviderProfileUseCase getProfileUseCase;
+  final GetProviderDashboardUseCase getDashboardUseCase;
+  final ToggleProviderAvailabilityUseCase toggleAvailabilityUseCase;
+  final SubmitProviderKycUseCase submitProviderKycUseCase;
+  final UpdateProviderProfileUseCase updateProfileUseCase;
 
   ProfileCubit({
-    required GetProviderProfileUseCase getProfileUseCase,
-    required GetProviderDashboardUseCase getDashboardUseCase,
-    required ToggleProviderAvailabilityUseCase toggleAvailabilityUseCase,
-    required SubmitProviderKycUseCase submitProviderKycUseCase,
-    required UpdateProviderProfileUseCase updateProfileUseCase,
-  })  : _getProfileUseCase = getProfileUseCase,
-        _getDashboardUseCase = getDashboardUseCase,
-        _toggleAvailabilityUseCase = toggleAvailabilityUseCase,
-        _submitProviderKycUseCase = submitProviderKycUseCase,
-        _updateProfileUseCase = updateProfileUseCase,
-        super(const ProfileInitial());
+    required this.getProfileUseCase,
+    required this.getDashboardUseCase,
+    required this.toggleAvailabilityUseCase,
+    required this.submitProviderKycUseCase,
+    required this.updateProfileUseCase,
+  }) : super(const ProfileInitial());
 
   Future<void> loadProfile({bool showLoading = true}) async {
     if (showLoading) {
@@ -35,8 +30,8 @@ class ProfileCubit extends Cubit<ProfileState> {
 
     try {
       final results = await Future.wait([
-        _getProfileUseCase(),
-        _getDashboardUseCase(),
+        getProfileUseCase(),
+        getDashboardUseCase(),
       ]);
 
       final profile = results[0] as dynamic;
@@ -58,7 +53,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     emit(currentState.copyWith(isTogglingStatus: true));
 
     try {
-      await _toggleAvailabilityUseCase();
+      await toggleAvailabilityUseCase();
       // Update local profile & dashboard state
       emit(currentState.copyWith(
         isTogglingStatus: false,
@@ -89,7 +84,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
 
     try {
-      final updatedProfile = await _submitProviderKycUseCase(
+      final updatedProfile = await submitProviderKycUseCase(
         nicNumber: nicNumber,
         nicFrontPath: nicFrontPath,
         nicBackPath: nicBackPath,
@@ -138,7 +133,7 @@ class ProfileCubit extends Cubit<ProfileState> {
     String? profileImagePath,
   }) async {
     try {
-      final updatedProfile = await _updateProfileUseCase(
+      final updatedProfile = await updateProfileUseCase(
         firstName: firstName,
         lastName: lastName,
         email: email,
