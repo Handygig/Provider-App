@@ -19,12 +19,27 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
   final PayoutService _service = PayoutService.instance;
 
   @override
+  void initState() {
+    super.initState();
+    _service.fetchAccounts();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _service,
       builder: (context, _) {
         final accounts = _service.accounts;
         final primaryAccount = _service.primaryAccount;
+
+        if (_service.isLoading && accounts.isEmpty) {
+          return const Scaffold(
+            backgroundColor: Color(0xFFF7F8F4),
+            body: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          );
+        }
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle.light.copyWith(
@@ -60,18 +75,20 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
                         ),
                         SizedBox(height: 12.h),
 
-                        // Accounts List
-                        ...accounts.map(
-                          (account) => Padding(
-                            padding: EdgeInsets.only(bottom: 12.h),
-                            child: _buildAccountTile(account),
+                        // Accounts List or Empty State
+                        if (accounts.isEmpty) ...[
+                          _buildEmptyAccountsCard(),
+                        ] else ...[
+                          ...accounts.map(
+                            (account) => Padding(
+                              padding: EdgeInsets.only(bottom: 12.h),
+                              child: _buildAccountTile(account),
+                            ),
                           ),
-                        ),
-
-                        SizedBox(height: 14.h),
-
-                        // Add Another Bank Account Button
-                        _buildAddAccountButton(),
+                          SizedBox(height: 14.h),
+                          // Add Another Bank Account Button
+                          _buildAddAccountButton(),
+                        ],
 
                         SizedBox(height: 16.h),
 
@@ -409,6 +426,76 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
   }
 
   // ---------------------------------------------------------------------------
+  // 2.5 EMPTY ACCOUNTS CARD
+  // ---------------------------------------------------------------------------
+  Widget _buildEmptyAccountsCard() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 28.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: const Color(0xFFE5E9DC)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(14.r),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.account_balance_rounded,
+              color: AppColors.primaryDark,
+              size: 30,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            'No Bank Accounts Linked',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textHeadline,
+            ),
+          ),
+          SizedBox(height: 5.h),
+          Text(
+            'Link your bank account to receive automated weekly earnings and direct payouts.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.sp,
+              color: AppColors.textMuted,
+              height: 1.4,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          ElevatedButton.icon(
+            onPressed: () => _openAddEditAccountSheet(),
+            icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+            label: Text(
+              'Link Bank Account',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDark,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // 3. ACCOUNT TILE
   // ---------------------------------------------------------------------------
   Widget _buildAccountTile(BankAccountModel account) {
@@ -521,13 +608,15 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14.r),
                 ),
-                onSelected: (value) {
+                onSelected: (value) async {
                   if (value == 'primary') {
-                    _service.setPrimary(account.id);
-                    DynamicIslandToast.showSuccess(
-                      context,
-                      'Set ${account.bankName} as Primary Payout Account',
-                    );
+                    final ok = await _service.setPrimary(account.id);
+                    if (ok && mounted) {
+                      DynamicIslandToast.showSuccess(
+                        context,
+                        'Set ${account.bankName} as Primary Payout Account',
+                      );
+                    }
                   } else if (value == 'edit') {
                     _openAddEditAccountSheet(existingAccount: account);
                   } else if (value == 'delete') {
@@ -547,16 +636,6 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
                         ],
                       ),
                     ),
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
-                        SizedBox(width: 10),
-                        Text('Edit Details'),
-                      ],
-                    ),
-                  ),
                   if (_service.accounts.length > 1)
                     const PopupMenuItem(
                       value: 'delete',
@@ -583,12 +662,14 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
             Divider(height: 1, color: const Color(0xFFF1F5F9)),
             SizedBox(height: 8.h),
             InkWell(
-              onTap: () {
-                _service.setPrimary(account.id);
-                DynamicIslandToast.showSuccess(
-                  context,
-                  'Set as primary payout account',
-                );
+              onTap: () async {
+                final ok = await _service.setPrimary(account.id);
+                if (ok && mounted) {
+                  DynamicIslandToast.showSuccess(
+                    context,
+                    'Set as primary payout account',
+                  );
+                }
               },
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 4.h),
@@ -750,16 +831,16 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
     final isEditing = existingAccount != null;
 
     final nameCtrl = TextEditingController(
-      text: existingAccount?.accountHolderName ?? 'Alex Perera',
+      text: existingAccount?.accountHolderName ?? '',
     );
     final accCtrl = TextEditingController(
       text: existingAccount?.accountNumber ?? '',
     );
     final branchCtrl = TextEditingController(
-      text: existingAccount?.branchName ?? 'Colombo 03 Branch',
+      text: existingAccount?.branchName ?? '',
     );
     final branchCodeCtrl = TextEditingController(
-      text: existingAccount?.branchCode ?? '042',
+      text: existingAccount?.branchCode ?? '',
     );
 
     BankOption selectedBank = PayoutService.supportedBanks.firstWhere(
@@ -1080,7 +1161,7 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
                       width: double.infinity,
                       height: 50.h,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           final accNumber = accCtrl.text.trim();
                           final holderName = nameCtrl.text.trim();
                           final branch = branchCtrl.text.trim();
@@ -1093,50 +1174,42 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
                             return;
                           }
 
+                          bool ok;
                           if (isEditing) {
-                            final updated = existingAccount.copyWith(
+                            ok = await _service.updateAccount(
+                              id: existingAccount.id,
                               bankName: selectedBank.name,
-                              bankCode: selectedBank.code,
+                              branchName: branch.isNotEmpty ? branch : 'Main Branch',
                               accountHolderName: holderName,
                               accountNumber: accNumber,
-                              branchName: branch.isNotEmpty
-                                  ? branch
-                                  : 'Main Branch',
-                              branchCode: branchCodeCtrl.text.trim(),
-                              accountType: accountType,
-                              isPrimary: isPrimary,
-                              cardStartColor: selectedBank.startColor,
-                              cardEndColor: selectedBank.endColor,
-                            );
-                            _service.updateAccount(updated);
-                            DynamicIslandToast.showSuccess(
-                              context,
-                              'Account details updated successfully',
+                              routingNumber: branchCodeCtrl.text.trim(),
                             );
                           } else {
-                            final newAcc = BankAccountModel(
-                              id: 'acc_${DateTime.now().millisecondsSinceEpoch}',
+                            ok = await _service.addAccount(
                               bankName: selectedBank.name,
-                              bankCode: selectedBank.code,
+                              branchName: branch.isNotEmpty ? branch : 'Main Branch',
                               accountHolderName: holderName,
                               accountNumber: accNumber,
-                              branchName: branch.isNotEmpty
-                                  ? branch
-                                  : 'Main Branch',
-                              branchCode: branchCodeCtrl.text.trim(),
-                              accountType: accountType,
-                              isPrimary: isPrimary,
-                              cardStartColor: selectedBank.startColor,
-                              cardEndColor: selectedBank.endColor,
-                            );
-                            _service.addAccount(newAcc);
-                            DynamicIslandToast.showSuccess(
-                              context,
-                              'New bank account linked successfully',
+                              routingNumber: branchCodeCtrl.text.trim(),
+                              isDefault: isPrimary,
                             );
                           }
 
-                          Navigator.pop(ctx);
+                          if (!context.mounted) return;
+                          if (ok) {
+                            Navigator.pop(ctx);
+                            DynamicIslandToast.showSuccess(
+                              context,
+                              isEditing
+                                  ? 'Account details updated successfully'
+                                  : 'New bank account linked successfully',
+                            );
+                          } else {
+                            DynamicIslandToast.showError(
+                              context,
+                              _service.errorMessage ?? 'Failed to save account',
+                            );
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryDark,
@@ -1275,9 +1348,10 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(ctx);
-                final success = _service.deleteAccount(account.id);
+                final success = await _service.deleteAccount(account.id);
+                if (!context.mounted) return;
                 if (success) {
                   DynamicIslandToast.showSuccess(
                     context,
@@ -1286,7 +1360,7 @@ class _BankPayoutDetailsScreenState extends State<BankPayoutDetailsScreen> {
                 } else {
                   DynamicIslandToast.showError(
                     context,
-                    'Cannot remove only remaining account',
+                    _service.errorMessage ?? 'Failed to remove account',
                   );
                 }
               },

@@ -1,4 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider_app/core/constants/app_endpoints.dart';
+import 'package:provider_app/core/di/service_locator.dart';
 import 'package:provider_app/src/domain/models/bank_account_model.dart';
 
 class BankOption {
@@ -24,7 +27,9 @@ class PayoutService extends ChangeNotifier {
 
   PayoutService._internal();
 
-  // Supported Banks
+  Dio get _dio => sl<Dio>();
+
+  // Supported Banks in Sri Lanka
   static const List<BankOption> supportedBanks = [
     BankOption(
       name: 'Commercial Bank of Ceylon',
@@ -84,41 +89,12 @@ class PayoutService extends ChangeNotifier {
     ),
   ];
 
-  // User's added bank accounts
-  final List<BankAccountModel> _accounts = [
-    const BankAccountModel(
-      id: 'acc_01',
-      bankName: 'Commercial Bank of Ceylon',
-      bankCode: 'COMB',
-      accountHolderName: 'Alex Perera',
-      accountNumber: '800214594210',
-      branchName: 'Kollupitiya Branch',
-      branchCode: '042',
-      accountType: 'Savings',
-      isPrimary: true,
-      cardStartColor: Color(0xFF1E3A8A),
-      cardEndColor: Color(0xFF0F172A),
-    ),
-    const BankAccountModel(
-      id: 'acc_02',
-      bankName: 'Sampath Bank PLC',
-      bankCode: 'SAMP',
-      accountHolderName: 'Alex Perera',
-      accountNumber: '100458291039',
-      branchName: 'Bambalapitiya Branch',
-      branchCode: '018',
-      accountType: 'Current',
-      isPrimary: false,
-      cardStartColor: Color(0xFFC2410C),
-      cardEndColor: Color(0xFF431407),
-    ),
-  ];
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<BankAccountModel> _accounts = [];
 
-  String _payoutSchedule = 'Weekly (Every Monday)';
-  double _minimumThreshold = 25.00; // in USD / equivalent in LKR
-  bool _instantPayoutEnabled = true;
-
-  // Getters
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
   List<BankAccountModel> get accounts => List.unmodifiable(_accounts);
 
   BankAccountModel? get primaryAccount {
@@ -129,84 +105,128 @@ class PayoutService extends ChangeNotifier {
     }
   }
 
-  String get payoutSchedule => _payoutSchedule;
-  double get minimumThreshold => _minimumThreshold;
-  bool get instantPayoutEnabled => _instantPayoutEnabled;
-
   String get primaryAccountSummary {
     final primary = primaryAccount;
     if (primary == null) return 'No Bank Account Linked';
     return '${primary.bankName} ${primary.shortMasked}';
   }
 
-  // Actions
-  void addAccount(BankAccountModel newAccount) {
-    if (newAccount.isPrimary || _accounts.isEmpty) {
-      // Set all existing to non-primary
-      for (int i = 0; i < _accounts.length; i++) {
-        _accounts[i] = _accounts[i].copyWith(isPrimary: false);
-      }
-      _accounts.insert(0, newAccount.copyWith(isPrimary: true));
-    } else {
-      _accounts.add(newAccount);
-    }
+  Future<void> fetchAccounts() async {
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
-  }
 
-  void updateAccount(BankAccountModel updatedAccount) {
-    final index = _accounts.indexWhere((a) => a.id == updatedAccount.id);
-    if (index != -1) {
-      if (updatedAccount.isPrimary) {
-        for (int i = 0; i < _accounts.length; i++) {
-          _accounts[i] = _accounts[i].copyWith(isPrimary: false);
-        }
+    try {
+      final response = await _dio.get(AppEndpoints.providerPayoutAccounts);
+      final dynamic body = response.data;
+      final List<dynamic> list;
+      if (body is Map<String, dynamic> && body['data'] is List) {
+        list = body['data'] as List<dynamic>;
+      } else if (body is List) {
+        list = body;
+      } else {
+        list = [];
       }
-      _accounts[index] = updatedAccount;
+
+      _accounts = list
+          .whereType<Map<String, dynamic>>()
+          .map((item) => BankAccountModel.fromJson(item))
+          .toList();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
     }
   }
 
-  bool deleteAccount(String id) {
-    if (_accounts.length <= 1) {
-      // Keep at least one account
+  Future<bool> addAccount({
+    required String bankName,
+    required String branchName,
+    required String accountHolderName,
+    required String accountNumber,
+    String? routingNumber,
+    String? swiftCode,
+    bool isDefault = false,
+  }) async {
+    try {
+      await _dio.post(
+        AppEndpoints.providerPayoutAccounts,
+        data: {
+          'bank_name': bankName,
+          'branch_name': branchName,
+          'account_holder_name': accountHolderName,
+          'account_number': accountNumber,
+          if (routingNumber != null && routingNumber.isNotEmpty)
+            'routing_number': routingNumber,
+          if (swiftCode != null && swiftCode.isNotEmpty)
+            'swift_code': swiftCode,
+          'is_default': isDefault,
+        },
+      );
+      await fetchAccounts();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
       return false;
     }
+  }
 
-    final toRemove = _accounts.firstWhere((a) => a.id == id);
-    _accounts.removeWhere((a) => a.id == id);
-
-    // If the removed account was primary, make the first one primary
-    if (toRemove.isPrimary && _accounts.isNotEmpty) {
-      _accounts[0] = _accounts[0].copyWith(isPrimary: true);
+  Future<bool> updateAccount({
+    required String id,
+    required String bankName,
+    required String branchName,
+    required String accountHolderName,
+    required String accountNumber,
+    String? routingNumber,
+    String? swiftCode,
+  }) async {
+    try {
+      await _dio.put(
+        '${AppEndpoints.providerPayoutAccounts}/$id',
+        data: {
+          'bank_name': bankName,
+          'branch_name': branchName,
+          'account_holder_name': accountHolderName,
+          'account_number': accountNumber,
+          if (routingNumber != null && routingNumber.isNotEmpty)
+            'routing_number': routingNumber,
+          if (swiftCode != null && swiftCode.isNotEmpty)
+            'swift_code': swiftCode,
+        },
+      );
+      await fetchAccounts();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
     }
-
-    notifyListeners();
-    return true;
   }
 
-  void setPrimary(String id) {
-    for (int i = 0; i < _accounts.length; i++) {
-      if (_accounts[i].id == id) {
-        _accounts[i] = _accounts[i].copyWith(isPrimary: true);
-      } else {
-        _accounts[i] = _accounts[i].copyWith(isPrimary: false);
-      }
+  Future<bool> setPrimary(String id) async {
+    try {
+      await _dio.put('${AppEndpoints.providerPayoutAccounts}/$id/default');
+      await fetchAccounts();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
     }
-    notifyListeners();
   }
 
-  void updatePayoutSchedule(String schedule) {
-    _payoutSchedule = schedule;
-    notifyListeners();
-  }
-
-  void updateMinimumThreshold(double threshold) {
-    _minimumThreshold = threshold;
-    notifyListeners();
-  }
-
-  void toggleInstantPayout(bool enabled) {
-    _instantPayoutEnabled = enabled;
-    notifyListeners();
+  Future<bool> deleteAccount(String id) async {
+    try {
+      await _dio.delete('${AppEndpoints.providerPayoutAccounts}/$id');
+      await fetchAccounts();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
   }
 }
