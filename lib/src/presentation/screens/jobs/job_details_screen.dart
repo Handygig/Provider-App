@@ -842,27 +842,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
     );
   }
 
-  void _simulateCustomerExtraResponse({required bool approved}) {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _job.extraStatus =
-          approved ? ExtraApprovalStatus.approved : ExtraApprovalStatus.rejected;
-    });
-    widget.onJobUpdated?.call(_job);
-
-    if (approved) {
-      DynamicIslandToast.showSuccess(
-        context,
-        'Customer approved extra LKR ${_job.extraAmount!.toStringAsFixed(2)}!',
-      );
-    } else {
-      DynamicIslandToast.showError(
-        context,
-        'Customer declined extra quotation request.',
-      );
-    }
-  }
-
   void _openCompletionDialog() {
     final remarksController = TextEditingController(
       text: 'Job completed according to customer specifications.',
@@ -3448,54 +3427,36 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                         height: 1.3,
                       ),
                     ),
-                    SizedBox(height: 10.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _simulateCustomerExtraResponse(
-                                approved: true),
-                            icon: const Icon(Icons.check_rounded, size: 14),
-                            label: Text(
-                              'Customer Approves ✓',
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(
+                          color: const Color(0xFFFDE68A),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.schedule_rounded,
+                            size: 14.r,
+                            color: const Color(0xFFB45309),
+                          ),
+                          SizedBox(width: 6.w),
+                          Expanded(
+                            child: Text(
+                              'Awaiting customer review and authorization via customer app.',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11.5.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF16A34A),
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: 8.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.r),
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF92400E),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(width: 8.w),
-                        OutlinedButton(
-                          onPressed: () => _simulateCustomerExtraResponse(
-                              approved: false),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFDC2626),
-                            side: const BorderSide(
-                                color: Color(0xFFFCA5A5), width: 1),
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 10.w, vertical: 8.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                          ),
-                          child: Text(
-                            'Decline ✕',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11.5.sp,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -3905,26 +3866,32 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         );
 
       case JobCategory.pendingApprove:
-        return ElevatedButton.icon(
-          onPressed: () => _advanceStage(
-            JobCategory.toStart,
-            successMessage:
-                'Customer approved quote! Job moved to "To Start".',
+        return Container(
+          width: double.infinity,
+          height: 48.h,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(26.r),
+            border: Border.all(color: const Color(0xFFFDE68A)),
           ),
-          icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
-          label: Text(
-            'Simulate Customer Approval',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF16A34A),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(26.r),
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.hourglass_top_rounded,
+                size: 20,
+                color: Color(0xFFD97706),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                'Awaiting Customer Approval',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF92400E),
+                ),
+              ),
+            ],
           ),
         );
 
