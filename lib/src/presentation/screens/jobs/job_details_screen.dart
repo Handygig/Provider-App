@@ -2,12 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/data/services/provider_session_service.dart';
 import 'package:provider_app/src/data/models/jobs/job_model.dart';
+import 'package:provider_app/src/presentation/cubits/jobs/jobs_cubit.dart';
 import 'package:provider_app/src/presentation/screens/jobs/utils/job_ui_helper.dart';
 import 'package:provider_app/src/presentation/screens/chat/chat_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
@@ -100,11 +102,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         final minute = now.minute.toString().padLeft(2, '0');
         _job.completionDate = 'Today, $hour:$minute $period';
         _job.finalRating = 5.0;
-        _job.clientFeedback = 'Great service delivered on schedule!';
+        _job.clientFeedback = 'Service completed.';
       }
     });
 
     widget.onJobUpdated?.call(_job);
+
+    try {
+      context.read<JobsCubit>().updateStatus(
+            jobId: _job.id,
+            status: newStatus,
+          );
+    } catch (_) {}
 
     DynamicIslandToast.showSuccess(
       context,
@@ -527,16 +536,24 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       final val = double.tryParse(amountController.text.trim()) ??
                           _job.estimatedBudget ??
                           60.0;
+                      final notes = notesController.text.trim();
                       Navigator.pop(context);
                       setState(() {
                         _job.quotedAmount = val;
-                        _job.quoteNotes = notesController.text.trim();
+                        _job.quoteNotes = notes;
                         _job.status = JobCategory.pendingApprove;
                       });
                       widget.onJobUpdated?.call(_job);
+                      try {
+                        context.read<JobsCubit>().submitQuote(
+                              jobId: _job.id,
+                              amount: val,
+                              notes: notes.isNotEmpty ? notes : null,
+                            );
+                      } catch (_) {}
                       DynamicIslandToast.showSuccess(
                         context,
-                        'Quote LKR ${val.toStringAsFixed(2)} sent! Auto-advanced to Pending Approval.',
+                        'Quote LKR ${val.toStringAsFixed(2)} submitted to customer!',
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -802,13 +819,21 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                 'Please enter a valid extra amount.');
                             return;
                           }
+                          final reason = reasonController.text.trim();
                           Navigator.pop(context);
                           setState(() {
                             _job.extraAmount = extraVal;
-                            _job.extraReason = reasonController.text.trim();
+                            _job.extraReason = reason;
                             _job.extraStatus = ExtraApprovalStatus.pending;
                           });
                           widget.onJobUpdated?.call(_job);
+                          try {
+                            context.read<JobsCubit>().requestExtra(
+                                  jobId: _job.id,
+                                  amount: extraVal,
+                                  reason: reason,
+                                );
+                          } catch (_) {}
                           DynamicIslandToast.showSuccess(
                             context,
                             'Extra LKR ${extraVal.toStringAsFixed(2)} requested! Sent to customer for approval.',
@@ -1049,7 +1074,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   height: 50.h,
                   child: ElevatedButton.icon(
                     onPressed: () {
+                      final remarks = remarksController.text.trim();
                       Navigator.pop(context);
+                      try {
+                        context.read<JobsCubit>().completeJob(
+                              jobId: _job.id,
+                              finalRating: 5.0,
+                              clientFeedback:
+                                  remarks.isNotEmpty ? remarks : 'Job completed.',
+                            );
+                      } catch (_) {}
                       _advanceStage(
                         JobCategory.finished,
                         successMessage:

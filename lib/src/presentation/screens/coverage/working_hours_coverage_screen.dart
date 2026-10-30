@@ -2,11 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/data/services/working_hours_coverage_service.dart';
+import 'package:provider_app/src/presentation/cubits/coverage/coverage_cubit.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
 
 typedef CoverageAreaScreen = WorkingHoursCoverageScreen;
@@ -25,6 +27,17 @@ class _WorkingHoursCoverageScreenState
       WorkingHoursCoverageService.instance;
 
   GoogleMapController? _mapController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<CoverageCubit>().loadCoverage(silent: true);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -794,21 +807,43 @@ class _WorkingHoursCoverageScreenState
         width: double.infinity,
         height: 50.h,
         child: ElevatedButton.icon(
-          onPressed: () {
-            HapticFeedback.mediumImpact();
-            DynamicIslandToast.showSuccess(
-              context,
-              'Coverage radius of ${_service.radiusKm.toInt()} km saved!',
-            );
-            Navigator.pop(context);
-          },
-          icon: const Icon(
-            Icons.check_circle_rounded,
-            color: Colors.white,
-            size: 20,
-          ),
+          onPressed: _isSaving
+              ? null
+              : () async {
+                  HapticFeedback.mediumImpact();
+                  setState(() => _isSaving = true);
+                  final success = await _service.saveCoverage();
+                  if (!mounted) return;
+                  setState(() => _isSaving = false);
+                  if (success) {
+                    DynamicIslandToast.showSuccess(
+                      context,
+                      'Coverage radius of ${_service.radiusKm.toInt()} km saved!',
+                    );
+                    Navigator.pop(context);
+                  } else {
+                    DynamicIslandToast.showError(
+                      context,
+                      'Failed to save coverage area',
+                    );
+                  }
+                },
+          icon: _isSaving
+              ? SizedBox(
+                  width: 18.w,
+                  height: 18.w,
+                  child: const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
           label: Text(
-            'Save Coverage Area',
+            _isSaving ? 'Saving Changes...' : 'Save Coverage Area',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14.5.sp,
               fontWeight: FontWeight.w700,

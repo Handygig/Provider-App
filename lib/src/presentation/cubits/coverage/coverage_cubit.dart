@@ -20,6 +20,11 @@ class CoverageCubit extends Cubit<CoverageState> {
   WorkingHoursCoverageEntity get coverage => _coverage;
   bool get isAvailableNow => _coverage.isAvailableNow;
 
+  void updateLocal(WorkingHoursCoverageEntity draft) {
+    _coverage = draft;
+    emit(CoverageLoaded(_coverage));
+  }
+
   Future<void> loadCoverage({bool silent = false}) async {
     if (!silent) {
       emit(const CoverageLoading());
