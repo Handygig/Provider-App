@@ -1,8 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
+import 'package:provider_app/core/constants/app_endpoints.dart';
+import 'package:provider_app/core/di/service_locator.dart';
 import 'package:provider_app/src/data/services/payout_service.dart';
 import 'package:provider_app/src/presentation/screens/payout/bank_payout_details_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
@@ -16,147 +19,69 @@ class WalletTab extends StatefulWidget {
 }
 
 class _WalletTabState extends State<WalletTab> {
-  double _availableBalance = 1840.50;
-  final double _pendingClearance = 185.00;
-  final double _thisMonthEarnings = 2450.00;
-  double _platformFeesDue = 42.50;
-  final double _totalCashCollected = 425.00;
-  final int _cashJobsCount = 3;
+  double _availableBalance = 0.0;
+  double _pendingClearance = 0.0;
+  double _thisMonthEarnings = 0.0;
+  double _platformFeesDue = 0.0;
+  double _totalCashCollected = 0.0;
+  int _cashJobsCount = 0;
   String _selectedFilter = 'All';
+  bool _isLoading = false;
 
-  late List<Map<String, dynamic>> _transactions;
-
-  final List<Map<String, dynamic>> _cashJobs = [
-    {
-      'jobId': 'JOB-1024',
-      'service': 'Emergency Pipe Leak Repair',
-      'customer': 'Sarah Jenkins',
-      'cashCollected': 65.00,
-      'feePercent': 10,
-      'feeDue': 6.50,
-      'date': 'Today, 2:45 PM',
-    },
-    {
-      'jobId': 'JOB-1027',
-      'service': 'Water Pump Motor Replacement',
-      'customer': 'Chaminda Silva',
-      'cashCollected': 200.00,
-      'feePercent': 10,
-      'feeDue': 20.00,
-      'date': 'Sep 21, 2026',
-    },
-    {
-      'jobId': 'JOB-1028',
-      'service': 'Ceiling Fan & Regulator Wiring',
-      'customer': 'Anuradha Jayasinghe',
-      'cashCollected': 160.00,
-      'feePercent': 10,
-      'feeDue': 16.00,
-      'date': 'Sep 20, 2026',
-    },
-  ];
+  List<Map<String, dynamic>> _transactions = [];
+  List<Map<String, dynamic>> _cashJobs = [];
 
   @override
   void initState() {
     super.initState();
-    _transactions = [
-      {
-        'id': 'TXN-9082',
-        'title': 'Emergency Pipe Leak Repair',
-        'type': 'earning',
-        'paymentMode': 'Cash',
-        'customer': 'Sarah Jenkins',
-        'jobId': 'JOB-1024',
-        'amount': 65.00,
-        'baseAmount': 45.00,
-        'extraAmount': 20.00,
-        'platformFee': 6.50,
-        'netAmount': 58.50,
-        'date': 'Today, 2:45 PM',
-        'status': 'Completed (Cash)',
-        'bank': null,
-      },
-      {
-        'id': 'TXN-9041',
-        'title': 'Withdrawal to Commercial Bank',
-        'type': 'payout',
-        'paymentMode': 'Bank Transfer',
-        'customer': null,
-        'jobId': null,
-        'amount': -450.00,
-        'baseAmount': 450.00,
-        'extraAmount': 0.0,
-        'platformFee': 0.0,
-        'netAmount': -450.00,
-        'date': 'Yesterday, 10:15 AM',
-        'status': 'Completed',
-        'bank': 'Commercial Bank •••• 4291',
-      },
-      {
-        'id': 'TXN-8994',
-        'title': 'Commercial AC Service & Filter',
-        'type': 'earning',
-        'paymentMode': 'Online (Escrow)',
-        'customer': 'David Miller',
-        'jobId': 'JOB-1025',
-        'amount': 160.00,
-        'baseAmount': 135.00,
-        'extraAmount': 25.00,
-        'platformFee': 8.00,
-        'netAmount': 152.00,
-        'date': 'Sep 20, 2026',
-        'status': 'Completed',
-        'bank': null,
-      },
-      {
-        'id': 'TXN-8920',
-        'title': 'Main Switchboard Repair',
-        'type': 'earning',
-        'paymentMode': 'Online (Escrow)',
-        'customer': 'Nimal Perera',
-        'jobId': 'JOB-1026',
-        'amount': 60.00,
-        'baseAmount': 60.00,
-        'extraAmount': 0.0,
-        'platformFee': 3.00,
-        'netAmount': 57.00,
-        'date': 'Sep 19, 2026',
-        'status': 'Pending Clearance',
-        'bank': null,
-      },
-      {
-        'id': 'TXN-8871',
-        'title': 'Extra Material Reimbursement',
-        'type': 'extra',
-        'paymentMode': 'Online',
-        'customer': 'Sarah Jenkins',
-        'jobId': 'JOB-1024',
-        'amount': 20.00,
-        'baseAmount': 20.00,
-        'extraAmount': 20.00,
-        'platformFee': 0.0,
-        'netAmount': 20.00,
-        'date': 'Sep 18, 2026',
-        'status': 'Completed',
-        'bank': null,
-      },
-      {
-        'id': 'TXN-8812',
-        'title': 'Weekly Payout Deposited',
-        'type': 'payout',
-        'paymentMode': 'Direct Deposit',
-        'customer': null,
-        'jobId': null,
-        'amount': -680.00,
-        'baseAmount': 680.00,
-        'extraAmount': 0.0,
-        'platformFee': 0.0,
-        'netAmount': -680.00,
-        'date': 'Sep 15, 2026',
-        'status': 'Completed',
-        'bank': 'Commercial Bank •••• 4291',
-      },
-    ];
+    _fetchWalletData();
+  }
+
+  Future<void> _fetchWalletData() async {
+    setState(() => _isLoading = true);
+    try {
+      final dio = sl<Dio>();
+      final response = await dio.get(AppEndpoints.providerWallet);
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data['data'] as Map<String, dynamic>? ?? {};
+        if (mounted) {
+          setState(() {
+            _availableBalance = (data['available_balance'] as num?)?.toDouble() ?? 0.0;
+            _pendingClearance = (data['pending_clearance'] as num?)?.toDouble() ?? 0.0;
+            _thisMonthEarnings = (data['this_month_earnings'] as num?)?.toDouble() ?? 0.0;
+            _platformFeesDue = (data['platform_fees_due'] as num?)?.toDouble() ?? 0.0;
+            _totalCashCollected = (data['total_cash_collected'] as num?)?.toDouble() ?? 0.0;
+            _cashJobsCount = (data['cash_jobs_count'] as num?)?.toInt() ?? 0;
+
+            final rawTransactions = data['transactions'] as List<dynamic>? ?? [];
+            _transactions = rawTransactions
+                .map((t) => Map<String, dynamic>.from(t as Map))
+                .toList();
+
+            _cashJobs = _transactions
+                .where((t) =>
+                    t['paymentMode'] == 'Cash' ||
+                    (t['type'] == 'earning' && (t['platformFee'] ?? 0) > 0))
+                .map((t) => {
+                      'jobId': t['jobId'] ?? 'JOB',
+                      'service': t['title'] ?? 'Service',
+                      'customer': t['customer'] ?? 'Customer',
+                      'cashCollected': ((t['amount'] ?? 0) as num).toDouble(),
+                      'feePercent': 10,
+                      'feeDue': ((t['platformFee'] ?? 0) as num).toDouble(),
+                      'date': t['date'] ?? '',
+                    })
+                .toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching wallet data: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   List<Map<String, dynamic>> get _filteredTransactions {
@@ -180,7 +105,7 @@ class _WalletTabState extends State<WalletTab> {
     return list;
   }
 
-  void _settlePlatformFees() {
+  Future<void> _settlePlatformFees() async {
     HapticFeedback.mediumImpact();
     if (_availableBalance < _platformFeesDue) {
       DynamicIslandToast.showSuccess(
@@ -191,31 +116,29 @@ class _WalletTabState extends State<WalletTab> {
     }
 
     final double settledAmount = _platformFeesDue;
-    setState(() {
-      _availableBalance -= settledAmount;
-      _platformFeesDue = 0.0;
-      _transactions.insert(0, {
-        'id': 'TXN-${DateTime.now().millisecondsSinceEpoch % 10000}',
-        'title': 'Admin Platform Fee Settlement (Cash Jobs)',
-        'type': 'fee',
-        'paymentMode': 'Wallet Deduction',
-        'customer': null,
-        'jobId': null,
-        'amount': -settledAmount,
-        'baseAmount': settledAmount,
-        'extraAmount': 0.0,
-        'platformFee': settledAmount,
-        'netAmount': -settledAmount,
-        'date': 'Just now',
-        'status': 'Paid to Admin',
-        'bank': 'Deducted from Wallet Balance',
-      });
-    });
-
-    DynamicIslandToast.showSuccess(
-      context,
-      'Platform fee of LKR ${settledAmount.toStringAsFixed(2)} settled to Admin!',
-    );
+    try {
+      final dio = sl<Dio>();
+      final res = await dio.post(
+        AppEndpoints.providerWalletPayFees,
+        data: {'amount': settledAmount},
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        await _fetchWalletData();
+        if (mounted) {
+          DynamicIslandToast.showSuccess(
+            context,
+            'Platform fee of LKR ${settledAmount.toStringAsFixed(2)} settled to Admin!',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        DynamicIslandToast.showSuccess(
+          context,
+          'Failed to settle platform fee: $e',
+        );
+      }
+    }
   }
 
   void _openCashJobsBreakdownDrawer() {
@@ -494,10 +417,10 @@ class _WalletTabState extends State<WalletTab> {
       backgroundColor: Colors.transparent,
       builder: (bottomSheetContext) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
+          builder: (modalCtx, setModalState) {
             return Container(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24.h,
+                bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 24.h,
                 left: 20.w,
                 right: 20.w,
                 top: 20.h,
@@ -596,7 +519,7 @@ class _WalletTabState extends State<WalletTab> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Commercial Bank of Ceylon',
+                                PayoutService.instance.primaryAccount?.bankName ?? 'Linked Bank Account',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14.sp,
                                   fontWeight: FontWeight.w700,
@@ -605,7 +528,9 @@ class _WalletTabState extends State<WalletTab> {
                               ),
                               SizedBox(height: 2.h),
                               Text(
-                                '•••• 4291 • Savings • Malaka Perera',
+                                PayoutService.instance.primaryAccount != null
+                                    ? '${PayoutService.instance.primaryAccount!.shortMasked} • ${PayoutService.instance.primaryAccount!.accountType} • ${PayoutService.instance.primaryAccount!.accountHolderName}'
+                                    : 'Please link a bank account for withdrawals',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12.sp,
                                   color: AppColors.textMuted,
@@ -876,34 +801,33 @@ class _WalletTabState extends State<WalletTab> {
                         Navigator.pop(bottomSheetContext);
 
                         final primaryBank = PayoutService.instance.primaryAccount;
-                        final bankName = primaryBank?.bankName ?? 'Bank';
-                        final bankSummary = PayoutService.instance.primaryAccountSummary;
-
-                        setState(() {
-                          _availableBalance -= val;
-                          _transactions.insert(0, {
-                            'id':
-                                'TXN-${DateTime.now().millisecondsSinceEpoch % 10000}',
-                            'title': 'Withdrawal to $bankName',
-                            'type': 'payout',
-                            'paymentMode': 'Bank Transfer',
-                            'customer': null,
-                            'jobId': null,
-                            'amount': -val,
-                            'baseAmount': val,
-                            'extraAmount': 0.0,
-                            'platformFee': 0.0,
-                            'netAmount': -val,
-                            'date': 'Just now',
-                            'status': 'Processing',
-                            'bank': bankSummary,
-                          });
-                        });
-
-                        DynamicIslandToast.showSuccess(
-                          context,
-                          'Withdrawal of LKR ${val.toStringAsFixed(2)} initiated!',
-                        );
+                        () async {
+                          try {
+                            final dio = sl<Dio>();
+                            final res = await dio.post(
+                              AppEndpoints.providerPayouts,
+                              data: {
+                                'amount': val,
+                                if (primaryBank != null)
+                                  'payout_account_id': primaryBank.id,
+                              },
+                            );
+                            if (res.statusCode == 200 || res.statusCode == 201) {
+                              await _fetchWalletData();
+                              if (!mounted) return;
+                              DynamicIslandToast.showSuccess(
+                                context,
+                                'Withdrawal of LKR ${val.toStringAsFixed(2)} initiated!',
+                              );
+                            }
+                          } catch (e) {
+                            if (!mounted) return;
+                            DynamicIslandToast.showSuccess(
+                              context,
+                              'Withdrawal failed: $e',
+                            );
+                          }
+                        }();
                       },
                       child: Text(
                         'Confirm Withdrawal',
@@ -1474,9 +1398,18 @@ class _WalletTabState extends State<WalletTab> {
               SizedBox(width: 8.w),
             ],
           ),
-          body: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 120.h),
+          body: _isLoading && _transactions.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
+              : RefreshIndicator(
+                  onRefresh: _fetchWalletData,
+                  color: AppColors.primary,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 120.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1548,7 +1481,7 @@ class _WalletTabState extends State<WalletTab> {
                                   ),
                                   SizedBox(width: 4.w),
                                   Text(
-                                    'Commercial Bank ••4291',
+                                    PayoutService.instance.primaryAccountSummary,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11.sp,
                                       fontWeight: FontWeight.w600,
@@ -1580,7 +1513,7 @@ class _WalletTabState extends State<WalletTab> {
                                   ),
                                   SizedBox(width: 4.w),
                                   Text(
-                                    'Apex Home Solutions • Staff',
+                                    '${ProviderSessionService.instance.companyName} • Staff',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11.sp,
                                       fontWeight: FontWeight.w700,
@@ -1666,7 +1599,7 @@ class _WalletTabState extends State<WalletTab> {
                                       ),
                                     ),
                                     Text(
-                                      'Direct withdrawals disabled • Paid via Apex Home Solutions',
+                                      'Direct withdrawals disabled • Paid via ${ProviderSessionService.instance.companyName}',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 10.5.sp,
                                         color: Colors.white70,
@@ -1888,12 +1821,50 @@ class _WalletTabState extends State<WalletTab> {
             SizedBox(height: 16.h),
 
             // ─── 5. TRANSACTIONS LIST ──────────────────────────────────────
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _filteredTransactions.length,
-              separatorBuilder: (_, _) => SizedBox(height: 10.h),
-              itemBuilder: (context, index) {
+            if (_filteredTransactions.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 36.h, horizontal: 20.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18.r),
+                  border: Border.all(color: const Color(0xFFE2E6D5)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.receipt_long_outlined,
+                      size: 42.r,
+                      color: const Color(0xFFBAC095),
+                    ),
+                    SizedBox(height: 10.h),
+                    Text(
+                      'No transactions yet',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textHeadline,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      'Earnings, payouts, and fees will appear here once jobs are completed.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12.sp,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _filteredTransactions.length,
+                separatorBuilder: (_, _) => SizedBox(height: 10.h),
+                itemBuilder: (context, index) {
                 final tx = _filteredTransactions[index];
                 final bool isPayout = tx['type'] == 'payout';
                 final bool isFee = tx['type'] == 'fee';
@@ -2020,9 +1991,10 @@ class _WalletTabState extends State<WalletTab> {
             ],
           ),
         ),
-      );
-    },
-  );
+      ),
+    );
+  },
+);
 }
 
   void _showCompanyWithdrawalInfo(BuildContext context) {

@@ -48,7 +48,7 @@ class WorkingHoursCoverageService extends ChangeNotifier {
   }
 
   void updateBaseCoordinates(double lat, double lng) {
-    _cubit.saveCoverage(_cubit.coverage.copyWith(
+    _cubit.updateLocal(_cubit.coverage.copyWith(
       baseLatitude: lat,
       baseLongitude: lng,
     ));
@@ -73,12 +73,12 @@ class WorkingHoursCoverageService extends ChangeNotifier {
       return s;
     }).toList();
 
-    _cubit.saveCoverage(_cubit.coverage.copyWith(schedules: updated));
+    _cubit.updateLocal(_cubit.coverage.copyWith(schedules: updated));
     notifyListeners();
   }
 
   void updateRadius(double radius) {
-    _cubit.saveCoverage(_cubit.coverage.copyWith(radiusKm: radius));
+    _cubit.updateLocal(_cubit.coverage.copyWith(radiusKm: radius));
     notifyListeners();
   }
 
@@ -89,12 +89,12 @@ class WorkingHoursCoverageService extends ChangeNotifier {
     } else {
       zones.add(zone);
     }
-    _cubit.saveCoverage(_cubit.coverage.copyWith(selectedZones: zones.toList()));
+    _cubit.updateLocal(_cubit.coverage.copyWith(selectedZones: zones.toList()));
     notifyListeners();
   }
 
   void setBaseLocation(String address, double lat, double lng) {
-    _cubit.saveCoverage(_cubit.coverage.copyWith(
+    _cubit.updateLocal(_cubit.coverage.copyWith(
       baseLocation: address,
       baseLatitude: lat,
       baseLongitude: lng,
@@ -103,7 +103,7 @@ class WorkingHoursCoverageService extends ChangeNotifier {
   }
 
   void setEmergencyPreferences(bool accept, double multiplier) {
-    _cubit.saveCoverage(_cubit.coverage.copyWith(
+    _cubit.updateLocal(_cubit.coverage.copyWith(
       acceptEmergencyJobs: accept,
       emergencyMultiplier: multiplier,
     ));
@@ -111,10 +111,14 @@ class WorkingHoursCoverageService extends ChangeNotifier {
   }
 
   void setExtraDistancePreferences(bool allow, int ratePerKm) {
-    _cubit.saveCoverage(_cubit.coverage.copyWith(
+    _cubit.updateLocal(_cubit.coverage.copyWith(
       allowExtraDistance: allow,
       extraDistanceRatePerKm: ratePerKm,
     ));
     notifyListeners();
+  }
+
+  Future<bool> saveCoverage() async {
+    return _cubit.saveCoverage(_cubit.coverage);
   }
 }

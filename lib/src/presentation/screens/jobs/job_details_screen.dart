@@ -2,12 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider_app/core/constants/app_colors.dart';
 import 'package:provider_app/src/data/services/provider_session_service.dart';
 import 'package:provider_app/src/data/models/jobs/job_model.dart';
+import 'package:provider_app/src/presentation/cubits/jobs/jobs_cubit.dart';
 import 'package:provider_app/src/presentation/screens/jobs/utils/job_ui_helper.dart';
 import 'package:provider_app/src/presentation/screens/chat/chat_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
@@ -100,11 +102,18 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         final minute = now.minute.toString().padLeft(2, '0');
         _job.completionDate = 'Today, $hour:$minute $period';
         _job.finalRating = 5.0;
-        _job.clientFeedback = 'Great service delivered on schedule!';
+        _job.clientFeedback = 'Service completed.';
       }
     });
 
     widget.onJobUpdated?.call(_job);
+
+    try {
+      context.read<JobsCubit>().updateStatus(
+            jobId: _job.id,
+            status: newStatus,
+          );
+    } catch (_) {}
 
     DynamicIslandToast.showSuccess(
       context,
@@ -527,16 +536,24 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                       final val = double.tryParse(amountController.text.trim()) ??
                           _job.estimatedBudget ??
                           60.0;
+                      final notes = notesController.text.trim();
                       Navigator.pop(context);
                       setState(() {
                         _job.quotedAmount = val;
-                        _job.quoteNotes = notesController.text.trim();
+                        _job.quoteNotes = notes;
                         _job.status = JobCategory.pendingApprove;
                       });
                       widget.onJobUpdated?.call(_job);
+                      try {
+                        context.read<JobsCubit>().submitQuote(
+                              jobId: _job.id,
+                              amount: val,
+                              notes: notes.isNotEmpty ? notes : null,
+                            );
+                      } catch (_) {}
                       DynamicIslandToast.showSuccess(
                         context,
-                        'Quote LKR ${val.toStringAsFixed(2)} sent! Auto-advanced to Pending Approval.',
+                        'Quote LKR ${val.toStringAsFixed(2)} submitted to customer!',
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -802,13 +819,21 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                                 'Please enter a valid extra amount.');
                             return;
                           }
+                          final reason = reasonController.text.trim();
                           Navigator.pop(context);
                           setState(() {
                             _job.extraAmount = extraVal;
-                            _job.extraReason = reasonController.text.trim();
+                            _job.extraReason = reason;
                             _job.extraStatus = ExtraApprovalStatus.pending;
                           });
                           widget.onJobUpdated?.call(_job);
+                          try {
+                            context.read<JobsCubit>().requestExtra(
+                                  jobId: _job.id,
+                                  amount: extraVal,
+                                  reason: reason,
+                                );
+                          } catch (_) {}
                           DynamicIslandToast.showSuccess(
                             context,
                             'Extra LKR ${extraVal.toStringAsFixed(2)} requested! Sent to customer for approval.',
@@ -840,27 +865,6 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         );
       },
     );
-  }
-
-  void _simulateCustomerExtraResponse({required bool approved}) {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _job.extraStatus =
-          approved ? ExtraApprovalStatus.approved : ExtraApprovalStatus.rejected;
-    });
-    widget.onJobUpdated?.call(_job);
-
-    if (approved) {
-      DynamicIslandToast.showSuccess(
-        context,
-        'Customer approved extra LKR ${_job.extraAmount!.toStringAsFixed(2)}!',
-      );
-    } else {
-      DynamicIslandToast.showError(
-        context,
-        'Customer declined extra quotation request.',
-      );
-    }
   }
 
   void _openCompletionDialog() {
@@ -1070,7 +1074,16 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                   height: 50.h,
                   child: ElevatedButton.icon(
                     onPressed: () {
+                      final remarks = remarksController.text.trim();
                       Navigator.pop(context);
+                      try {
+                        context.read<JobsCubit>().completeJob(
+                              jobId: _job.id,
+                              finalRating: 5.0,
+                              clientFeedback:
+                                  remarks.isNotEmpty ? remarks : 'Job completed.',
+                            );
+                      } catch (_) {}
                       _advanceStage(
                         JobCategory.finished,
                         successMessage:
@@ -3448,54 +3461,36 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
                         height: 1.3,
                       ),
                     ),
-                    SizedBox(height: 10.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _simulateCustomerExtraResponse(
-                                approved: true),
-                            icon: const Icon(Icons.check_rounded, size: 14),
-                            label: Text(
-                              'Customer Approves ✓',
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(
+                          color: const Color(0xFFFDE68A),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.schedule_rounded,
+                            size: 14.r,
+                            color: const Color(0xFFB45309),
+                          ),
+                          SizedBox(width: 6.w),
+                          Expanded(
+                            child: Text(
+                              'Awaiting customer review and authorization via customer app.',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11.5.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF16A34A),
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: 8.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.r),
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF92400E),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(width: 8.w),
-                        OutlinedButton(
-                          onPressed: () => _simulateCustomerExtraResponse(
-                              approved: false),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFDC2626),
-                            side: const BorderSide(
-                                color: Color(0xFFFCA5A5), width: 1),
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 10.w, vertical: 8.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                          ),
-                          child: Text(
-                            'Decline ✕',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11.5.sp,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -3905,26 +3900,32 @@ class _JobDetailsScreenState extends State<JobDetailsScreen> {
         );
 
       case JobCategory.pendingApprove:
-        return ElevatedButton.icon(
-          onPressed: () => _advanceStage(
-            JobCategory.toStart,
-            successMessage:
-                'Customer approved quote! Job moved to "To Start".',
+        return Container(
+          width: double.infinity,
+          height: 48.h,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(26.r),
+            border: Border.all(color: const Color(0xFFFDE68A)),
           ),
-          icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
-          label: Text(
-            'Simulate Customer Approval',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF16A34A),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(26.r),
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.hourglass_top_rounded,
+                size: 20,
+                color: Color(0xFFD97706),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                'Awaiting Customer Approval',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF92400E),
+                ),
+              ),
+            ],
           ),
         );
 

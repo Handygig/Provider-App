@@ -25,4 +25,5 @@ class AppRoutes {
   static const String payout = '/payout';
   static const String notificationPreferences = '/notification-preferences';
   static const String chat = '/chat';
+  static const String reviews = '/reviews';
 }

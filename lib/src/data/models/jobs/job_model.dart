@@ -142,20 +142,30 @@ class JobModel extends JobEntity {
   }
 
   factory JobModel.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic>? jobReq = json['job_request'] is Map<String, dynamic>
+        ? json['job_request'] as Map<String, dynamic>
+        : null;
+
+    final isQuotation = json.containsKey('quoted_price') ||
+        json.containsKey('quotedAmount') ||
+        json.containsKey('bidder_type') ||
+        jobReq != null;
+
     JobCategory parseStatus(dynamic status) {
       if (status is JobCategory) return status;
       final str = status?.toString().toLowerCase() ?? '';
-      if (str.contains('quote')) return JobCategory.toQuote;
-      if (str.contains('pending') || str.contains('approv')) {
+      if (isQuotation && (str.isEmpty || str.contains('pending') || str.contains('quote'))) {
         return JobCategory.pendingApprove;
       }
-      if (str.contains('start') || str.contains('ready')) {
+      if (str.contains('quote') || str == 'open') return JobCategory.toQuote;
+      if (str.contains('approv')) return JobCategory.pendingApprove;
+      if (str.contains('sched') || str.contains('start') || str.contains('assign') || str.contains('ready')) {
         return JobCategory.toStart;
       }
-      if (str.contains('ongoing') || str.contains('progress')) {
+      if (str.contains('ongoing') || str.contains('progress') || str == 'in_progress') {
         return JobCategory.ongoing;
       }
-      if (str.contains('finish') || str.contains('complete')) {
+      if (str.contains('finish') || str.contains('complete') || str == 'completed') {
         return JobCategory.finished;
       }
       return JobCategory.toQuote;
@@ -182,39 +192,74 @@ class JobModel extends JobEntity {
       return null;
     }
 
+    final rawId = json['id'] ?? jobReq?['id'] ?? json['job_request_id'] ?? '';
+    final idStr = rawId.toString().startsWith('JOB-')
+        ? rawId.toString()
+        : 'JOB-${rawId.toString().padLeft(4, '0')}';
+
     return JobModel(
-      id: json['id']?.toString() ?? '',
+      id: idStr,
       serviceTitle: json['service_title']?.toString() ??
           json['serviceTitle']?.toString() ??
           json['title']?.toString() ??
+          jobReq?['service_title']?.toString() ??
+          jobReq?['serviceTitle']?.toString() ??
+          jobReq?['title']?.toString() ??
           '',
-      category: json['category']?.toString() ?? 'General',
+      category: json['category']?.toString() ??
+          jobReq?['category']?.toString() ??
+          'General',
       customerName: json['customer_name']?.toString() ??
           json['customerName']?.toString() ??
+          jobReq?['customer_name']?.toString() ??
+          jobReq?['customerName']?.toString() ??
           'Customer',
       customerPhone: json['customer_phone']?.toString() ??
           json['customerPhone']?.toString() ??
+          jobReq?['customer_phone']?.toString() ??
+          jobReq?['customerPhone']?.toString() ??
           '+94 77 982 1450',
       customerRating: (json['customer_rating'] ??
               json['customerRating'] ??
               json['rating'] ??
+              jobReq?['customer_rating'] ??
+              jobReq?['customerRating'] ??
               4.9)
           .toDouble(),
       customerReviewsCount: json['customer_reviews_count'] ??
           json['customerReviewsCount'] ??
+          jobReq?['customer_reviews_count'] ??
+          jobReq?['customerReviewsCount'] ??
           24,
-      address: json['address']?.toString() ?? '',
-      city: json['city']?.toString() ?? 'Colombo',
-      distance: json['distance']?.toString() ?? '2.5 km away',
+      address: json['address']?.toString() ??
+          jobReq?['address']?.toString() ??
+          '',
+      city: json['city']?.toString() ?? jobReq?['city']?.toString() ?? 'Colombo',
+      distance: json['distance']?.toString() ??
+          jobReq?['distance']?.toString() ??
+          '2.5 km away',
       requestedTime: json['requested_time']?.toString() ??
           json['requestedTime']?.toString() ??
+          jobReq?['requested_time']?.toString() ??
+          jobReq?['requestedTime']?.toString() ??
           'Today',
-      description: json['description']?.toString() ?? '',
-      estimatedBudget: (json['estimated_budget'] ?? json['estimatedBudget'])
+      description: json['description']?.toString() ??
+          jobReq?['description']?.toString() ??
+          '',
+      estimatedBudget: (json['estimated_budget'] ??
+              json['estimatedBudget'] ??
+              json['budget'] ??
+              jobReq?['estimated_budget'] ??
+              jobReq?['estimatedBudget'] ??
+              jobReq?['budget'])
           ?.toDouble(),
-      quotedAmount: (json['quoted_amount'] ?? json['quotedAmount'])?.toDouble(),
+      quotedAmount: (json['quoted_amount'] ??
+              json['quotedAmount'] ??
+              json['quoted_price'])
+          ?.toDouble(),
       quoteNotes: json['quote_notes']?.toString() ??
-          json['quoteNotes']?.toString(),
+          json['quoteNotes']?.toString() ??
+          json['message']?.toString(),
       status: parseStatus(json['status']),
       completionDate: json['completion_date']?.toString() ??
           json['completionDate']?.toString(),
@@ -237,8 +282,16 @@ class JobModel extends JobEntity {
           : null,
       scheduledTimeSlot: json['scheduled_time_slot']?.toString() ??
           json['scheduledTimeSlot']?.toString(),
-      latitude: (json['latitude'] ?? json['lat'])?.toDouble(),
-      longitude: (json['longitude'] ?? json['lng'])?.toDouble(),
+      latitude: (json['latitude'] ??
+              json['lat'] ??
+              jobReq?['latitude'] ??
+              jobReq?['lat'])
+          ?.toDouble(),
+      longitude: (json['longitude'] ??
+              json['lng'] ??
+              jobReq?['longitude'] ??
+              jobReq?['lng'])
+          ?.toDouble(),
       isCompanyAssigned: json['is_company_assigned'] == true ||
           json['isCompanyAssigned'] == true,
       assignedCompanyName: json['assigned_company_name']?.toString() ??

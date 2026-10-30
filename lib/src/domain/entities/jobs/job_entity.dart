@@ -262,6 +262,15 @@ class JobEntity extends Equatable {
       extraAmount != null &&
       extraAmount! > 0;
 
+  String get initials {
+    final parts = customerName.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts[0].isEmpty) return 'C';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+
+  double get effectivePrice => quotedAmount ?? estimatedBudget ?? 0.0;
+
   JobEntity copyWith({
     String? id,
     String? serviceTitle,

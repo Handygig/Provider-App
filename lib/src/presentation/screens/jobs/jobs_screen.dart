@@ -7,10 +7,11 @@ import 'package:provider_app/src/data/services/provider_session_service.dart';
 import 'package:provider_app/src/data/models/jobs/job_model.dart';
 import 'package:provider_app/src/presentation/screens/jobs/utils/job_ui_helper.dart';
 import 'package:provider_app/src/presentation/screens/jobs/job_details_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider_app/core/di/service_locator.dart';
 import 'package:provider_app/src/presentation/cubits/jobs/jobs_cubit.dart';
+import 'package:provider_app/src/presentation/cubits/jobs/jobs_state.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
-import 'package:provider_app/src/presentation/widgets/incoming_quotation_request_drawer.dart';
 
 class JobsScreen extends StatefulWidget {
   final JobCategory initialCategory;
@@ -45,7 +46,7 @@ class _JobsScreenState extends State<JobsScreen>
     return count;
   }
 
-  late List<JobModel> _jobs;
+  List<JobModel> _jobs = [];
 
   @override
   void initState() {
@@ -65,41 +66,12 @@ class _JobsScreenState extends State<JobsScreen>
     final cubitJobs = sl<JobsCubit>().jobs;
     _jobs = cubitJobs.map((j) {
       if (j is JobModel) return j;
-      return JobModel(
-        id: j.id,
-        serviceTitle: j.serviceTitle,
-        category: j.category,
-        customerName: j.customerName,
-        customerPhone: j.customerPhone,
-        customerRating: j.customerRating,
-        customerReviewsCount: j.customerReviewsCount,
-        address: j.address,
-        city: j.city,
-        distance: j.distance,
-        requestedTime: j.requestedTime,
-        description: j.description,
-        estimatedBudget: j.estimatedBudget,
-        quotedAmount: j.quotedAmount,
-        quoteNotes: j.quoteNotes,
-        status: j.status,
-        completionDate: j.completionDate,
-        finalRating: j.finalRating,
-        clientFeedback: j.clientFeedback,
-        extraAmount: j.extraAmount,
-        extraReason: j.extraReason,
-        extraStatus: j.extraStatus,
-        paymentMethod: j.paymentMethod,
-        jobDate: j.jobDate,
-        orderType: j.orderType,
-        scheduledDate: j.scheduledDate,
-        scheduledTimeSlot: j.scheduledTimeSlot,
-        latitude: j.latitude,
-        longitude: j.longitude,
-        isCompanyAssigned: j.isCompanyAssigned,
-        assignedCompanyName: j.assignedCompanyName,
-        companyDispatchNote: j.companyDispatchNote,
-      );
+      return JobModel.fromEntity(j);
     }).toList();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<JobsCubit>().loadJobs(silent: true);
+    });
   }
 
   @override
@@ -248,110 +220,6 @@ class _JobsScreenState extends State<JobsScreen>
     return _jobs.where((j) => j.status == category).length;
   }
 
-  int _simulatedRequestIndex = 0;
-
-  final List<Map<String, dynamic>> _jobSimulationTemplates = [
-    {
-      'title': 'Emergency Pipe Leak & Tap Fix',
-      'category': 'Plumbing',
-      'customer': 'Sarah Jenkins',
-      'rating': 4.9,
-      'address': 'No 18, Galle Road, Kollupitiya, Colombo 03',
-      'distance': '2.4 km away',
-      'time': 'Inspection Now • Urgent',
-      'desc':
-          'Urgent kitchen pipeline leak under sink. Water flooding kitchen floor, requires quick on-site inspection and price quotation.',
-      'budget': 65.00,
-    },
-    {
-      'title': 'AC Compressor Gas Leak & Nitrogen Test',
-      'category': 'AC Repair',
-      'customer': 'David Miller',
-      'rating': 4.8,
-      'address': '12/4 Ward Place, Colombo 07',
-      'distance': '3.4 km away',
-      'time': 'Within 2 hours',
-      'desc':
-          'Inverter AC unit outdoor fan vibrating violently and low cooling efficiency. Need cost estimate for nitrogen leak test and gas refill.',
-      'budget': 85.00,
-    },
-    {
-      'title': 'Main Switchboard Breaker Trip & Sparks',
-      'category': 'Electrical',
-      'customer': 'Priya Sharma',
-      'rating': 5.0,
-      'address': 'Duplication Road, Bambalapitiya, Colombo 04',
-      'distance': '1.8 km away',
-      'time': 'Immediate Assistance',
-      'desc':
-          'Main 63A RCCB trips repeatedly with burning smell from distribution board. Urgent diagnostic required.',
-      'budget': 55.00,
-    },
-  ];
-
-  void _simulateJobRequest() {
-    HapticFeedback.heavyImpact();
-    final template =
-        _jobSimulationTemplates[_simulatedRequestIndex % _jobSimulationTemplates.length];
-    _simulatedRequestIndex++;
-
-    final newId = 'JOB-${3000 + DateTime.now().millisecondsSinceEpoch % 7000}';
-
-    final simulatedJob = JobModel(
-      id: newId,
-      serviceTitle: template['title'] as String,
-      category: template['category'] as String,
-      customerName: template['customer'] as String,
-      customerPhone: '+94 77 982 1450',
-      customerRating: (template['rating'] as num).toDouble(),
-      customerReviewsCount: 32,
-      address: template['address'] as String,
-      distance: template['distance'] as String,
-      requestedTime: template['time'] as String,
-      description: template['desc'] as String,
-      estimatedBudget: (template['budget'] as num).toDouble(),
-      status: JobCategory.toQuote,
-      orderType: (template['time'] as String).toLowerCase().contains('now') ||
-              (template['time'] as String).toLowerCase().contains('immediate')
-          ? OrderType.instant
-          : OrderType.scheduled,
-      scheduledDate: DateTime.now().add(const Duration(days: 1)),
-      scheduledTimeSlot: '04:30 PM - 06:00 PM',
-      latitude: 6.9034 + (_simulatedRequestIndex % 5) * 0.003,
-      longitude: 79.8546 + (_simulatedRequestIndex % 5) * 0.003,
-      isCompanyAssigned: ProviderSessionService.instance.isCompanyProvider,
-      assignedCompanyName: ProviderSessionService.instance.isCompanyProvider
-          ? ProviderSessionService.instance.companyName
-          : null,
-      companyDispatchNote: ProviderSessionService.instance.isCompanyProvider
-          ? 'Dispatched by ${ProviderSessionService.instance.companyName}. Customer requested company-verified specialist.'
-          : null,
-    );
-
-    setState(() {
-      _jobs.insert(0, simulatedJob);
-    });
-
-    _tabController.animateTo(0);
-
-    DynamicIslandToast.showSuccess(
-      context,
-      'Simulated request: ${simulatedJob.customerName}',
-    );
-
-    IncomingQuotationRequestDrawer.show(
-      context,
-      job: simulatedJob,
-      onQuoteSent: (updatedJob) {
-        setState(() {
-          final idx = _jobs.indexWhere((j) => j.id == updatedJob.id);
-          if (idx != -1) {
-            _jobs[idx] = updatedJob;
-          }
-        });
-      },
-    );
-  }
 
   void _openJobDetails(JobModel job) {
     HapticFeedback.lightImpact();
@@ -379,17 +247,36 @@ class _JobsScreenState extends State<JobsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final toQuoteCount = _countForCategory(JobCategory.toQuote);
-    final pendingCount = _countForCategory(JobCategory.pendingApprove);
-    final toStartCount = _countForCategory(JobCategory.toStart);
-    final ongoingCount = _countForCategory(JobCategory.ongoing);
-    final finishedCount = _countForCategory(JobCategory.finished);
+    return BlocConsumer<JobsCubit, JobsState>(
+      listener: (context, jobsState) {
+        if (jobsState is JobsLoaded) {
+          setState(() {
+            _jobs = jobsState.allJobs
+                .map((j) => j is JobModel ? j : JobModel.fromEntity(j))
+                .toList();
+          });
+        }
+      },
+      builder: (context, jobsState) {
+        if (jobsState is JobsLoaded &&
+            _jobs.isEmpty &&
+            jobsState.allJobs.isNotEmpty) {
+          _jobs = jobsState.allJobs
+              .map((j) => j is JobModel ? j : JobModel.fromEntity(j))
+              .toList();
+        }
 
-    return AnimatedBuilder(
-      animation: ProviderSessionService.instance,
-      builder: (context, _) {
-        final isCompany = ProviderSessionService.instance.isCompanyProvider;
-        final companyName = ProviderSessionService.instance.companyName;
+        final toQuoteCount = _countForCategory(JobCategory.toQuote);
+        final pendingCount = _countForCategory(JobCategory.pendingApprove);
+        final toStartCount = _countForCategory(JobCategory.toStart);
+        final ongoingCount = _countForCategory(JobCategory.ongoing);
+        final finishedCount = _countForCategory(JobCategory.finished);
+
+        return AnimatedBuilder(
+          animation: ProviderSessionService.instance,
+          builder: (context, _) {
+            final isCompany = ProviderSessionService.instance.isCompanyProvider;
+            final companyName = ProviderSessionService.instance.companyName;
 
         return Scaffold(
           backgroundColor: const Color(0xFFFBFBFB),
@@ -456,73 +343,27 @@ class _JobsScreenState extends State<JobsScreen>
                           ),
                         ),
                         SizedBox(width: 8.w),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: _simulateJobRequest,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 9.w,
-                                  vertical: 6.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFD4DE95),
-                                  borderRadius: BorderRadius.circular(14.r),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFFD4DE95)
-                                          .withValues(alpha: 0.35),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.bolt_rounded,
-                                      color: AppColors.primaryDark,
-                                      size: 14.r,
-                                    ),
-                                    SizedBox(width: 2.w),
-                                    Text(
-                                      'Simulate',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 11.sp,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.primaryDark,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 2.w),
-                            IconButton(
-                              tooltip: 'Refresh',
-                              visualDensity: VisualDensity.compact,
-                              padding: EdgeInsets.zero,
-                              constraints: BoxConstraints.tightFor(
-                                width: 34.r,
-                                height: 34.r,
-                              ),
-                              icon: const Icon(
-                                Icons.refresh_rounded,
-                                color: Colors.white70,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                HapticFeedback.lightImpact();
-                                setState(() {});
-                                DynamicIslandToast.showSuccess(
-                                  context,
-                                  'Jobs Refreshed',
-                                );
-                              },
-                            ),
-                          ],
+                        IconButton(
+                          tooltip: 'Refresh',
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: BoxConstraints.tightFor(
+                            width: 34.r,
+                            height: 34.r,
+                          ),
+                          icon: const Icon(
+                            Icons.refresh_rounded,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            context.read<JobsCubit>().loadJobs();
+                            DynamicIslandToast.showSuccess(
+                              context,
+                              'Jobs Refreshed',
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -602,6 +443,8 @@ class _JobsScreenState extends State<JobsScreen>
             ],
           ),
         );
+      },
+    );
       },
     );
   }

@@ -64,6 +64,14 @@ import 'package:provider_app/src/domain/repositories/notifications/notification_
 import 'package:provider_app/src/domain/usecases/notifications/notification_preferences_usecases.dart';
 import 'package:provider_app/src/presentation/cubits/notifications/notification_preferences_cubit.dart';
 
+// Notifications
+import 'package:provider_app/src/data/data_sources/remote/notifications/notification_remote_data_source.dart';
+import 'package:provider_app/src/data/data_sources/remote/notifications/notification_remote_data_source_impl.dart';
+import 'package:provider_app/src/data/repositories/notifications/notification_repository_impl.dart';
+import 'package:provider_app/src/domain/repositories/notifications/notification_repository.dart';
+import 'package:provider_app/src/domain/usecases/notifications/notification_usecases.dart';
+import 'package:provider_app/src/presentation/cubits/notifications/notification_cubit.dart';
+
 // Jobs
 import 'package:provider_app/src/data/data_sources/remote/jobs/job_remote_data_source.dart';
 import 'package:provider_app/src/data/data_sources/remote/jobs/job_remote_data_source_impl.dart';
@@ -71,6 +79,14 @@ import 'package:provider_app/src/data/repositories/jobs/job_repository_impl.dart
 import 'package:provider_app/src/domain/repositories/jobs/job_repository.dart';
 import 'package:provider_app/src/domain/usecases/jobs/job_usecases.dart';
 import 'package:provider_app/src/presentation/cubits/jobs/jobs_cubit.dart';
+
+// Reviews
+import 'package:provider_app/src/data/data_sources/remote/reviews/reviews_remote_data_source.dart';
+import 'package:provider_app/src/data/data_sources/remote/reviews/reviews_remote_data_source_impl.dart';
+import 'package:provider_app/src/data/repositories/reviews/reviews_repository_impl.dart';
+import 'package:provider_app/src/domain/repositories/reviews/reviews_repository.dart';
+import 'package:provider_app/src/domain/usecases/reviews/get_reviews_usecase.dart';
+import 'package:provider_app/src/presentation/cubits/reviews/reviews_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -114,8 +130,14 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton<NotificationPreferencesRemoteDataSource>(
     () => NotificationPreferencesRemoteDataSourceImpl(dio: sl<Dio>()),
   );
+  sl.registerLazySingleton<NotificationRemoteDataSource>(
+    () => NotificationRemoteDataSourceImpl(dio: sl<Dio>()),
+  );
   sl.registerLazySingleton<JobRemoteDataSource>(
     () => JobRemoteDataSourceImpl(dio: sl<Dio>()),
+  );
+  sl.registerLazySingleton<ReviewsRemoteDataSource>(
+    () => ReviewsRemoteDataSourceImpl(dio: sl<Dio>()),
   );
 
   // -------------------------------------------------------------
@@ -145,8 +167,17 @@ Future<void> initServiceLocator() async {
     () => NotificationPreferencesRepositoryImpl(
         remoteDataSource: sl<NotificationPreferencesRemoteDataSource>()),
   );
+  sl.registerLazySingleton<NotificationRepository>(
+    () => NotificationRepositoryImpl(
+      remoteDataSource: sl<NotificationRemoteDataSource>(),
+      networkService: sl<NetworkService>(),
+    ),
+  );
   sl.registerLazySingleton<JobRepository>(
     () => JobRepositoryImpl(remoteDataSource: sl<JobRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<ReviewsRepository>(
+    () => ReviewsRepositoryImpl(remoteDataSource: sl<ReviewsRemoteDataSource>()),
   );
 
   // -------------------------------------------------------------
@@ -238,6 +269,20 @@ Future<void> initServiceLocator() async {
         sl<NotificationPreferencesRepository>()),
   );
 
+  // Notifications
+  sl.registerLazySingleton<GetNotificationsUseCase>(
+    () => GetNotificationsUseCase(repository: sl<NotificationRepository>()),
+  );
+  sl.registerLazySingleton<MarkNotificationAsReadUseCase>(
+    () => MarkNotificationAsReadUseCase(repository: sl<NotificationRepository>()),
+  );
+  sl.registerLazySingleton<MarkAllNotificationsAsReadUseCase>(
+    () => MarkAllNotificationsAsReadUseCase(repository: sl<NotificationRepository>()),
+  );
+  sl.registerLazySingleton<DeleteNotificationUseCase>(
+    () => DeleteNotificationUseCase(repository: sl<NotificationRepository>()),
+  );
+
   // Jobs
   sl.registerLazySingleton<GetJobsUseCase>(
     () => GetJobsUseCase(sl<JobRepository>()),
@@ -256,6 +301,9 @@ Future<void> initServiceLocator() async {
   );
   sl.registerLazySingleton<CompleteJobUseCase>(
     () => CompleteJobUseCase(sl<JobRepository>()),
+  );
+  sl.registerLazySingleton<GetReviewsUseCase>(
+    () => GetReviewsUseCase(repository: sl<ReviewsRepository>()),
   );
 
   // -------------------------------------------------------------
@@ -309,6 +357,14 @@ Future<void> initServiceLocator() async {
       updatePreferencesUseCase: sl<UpdateNotificationPreferencesUseCase>(),
     ),
   );
+  sl.registerLazySingleton<NotificationCubit>(
+    () => NotificationCubit(
+      getNotificationsUseCase: sl<GetNotificationsUseCase>(),
+      markNotificationAsReadUseCase: sl<MarkNotificationAsReadUseCase>(),
+      markAllNotificationsAsReadUseCase: sl<MarkAllNotificationsAsReadUseCase>(),
+      deleteNotificationUseCase: sl<DeleteNotificationUseCase>(),
+    ),
+  );
   sl.registerLazySingleton<JobsCubit>(
     () => JobsCubit(
       getJobsUseCase: sl<GetJobsUseCase>(),
@@ -318,5 +374,8 @@ Future<void> initServiceLocator() async {
       requestExtraAmountUseCase: sl<RequestExtraAmountUseCase>(),
       completeJobUseCase: sl<CompleteJobUseCase>(),
     ),
+  );
+  sl.registerLazySingleton<ReviewsCubit>(
+    () => ReviewsCubit(getReviewsUseCase: sl<GetReviewsUseCase>()),
   );
 }

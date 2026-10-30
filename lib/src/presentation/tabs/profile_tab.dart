@@ -14,6 +14,7 @@ import 'package:provider_app/src/presentation/cubits/profile/profile_state.dart'
 import 'package:provider_app/src/presentation/screens/coverage/working_hours_coverage_screen.dart';
 import 'package:provider_app/src/presentation/screens/notifications/notification_preferences_screen.dart';
 import 'package:provider_app/src/presentation/screens/payout/bank_payout_details_screen.dart';
+import 'package:provider_app/src/presentation/screens/reviews/customer_reviews_screen.dart';
 import 'package:provider_app/src/presentation/screens/services/managed_services_skills_screen.dart';
 import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
 import 'package:provider_app/src/presentation/screens/welcome/welcome_screen.dart';
@@ -287,7 +288,19 @@ class _ProfileTabView extends StatelessWidget {
                             width: 1,
                             color: AppColors.borderUnselected,
                           ),
-                          _buildStatCol('Rating', '${profile.rating.toStringAsFixed(1)} ★'),
+                          _buildStatCol(
+                            'Rating',
+                            '${profile.rating.toStringAsFixed(1)} ★',
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CustomerReviewsScreen(),
+                                ),
+                              );
+                            },
+                          ),
                           Container(
                             height: 30.h,
                             width: 1,
@@ -304,6 +317,21 @@ class _ProfileTabView extends StatelessWidget {
                     padding: EdgeInsets.symmetric(horizontal: 20.w),
                     child: Column(
                       children: [
+                        _buildMenuTile(
+                          icon: Icons.star_rate_rounded,
+                          title: 'Customer Reviews & Feedback',
+                          subtitle:
+                              '${profile.rating.toStringAsFixed(1)} ★ • ${profile.reviewsCount} customer ratings',
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CustomerReviewsScreen(),
+                              ),
+                            );
+                          },
+                        ),
                         _buildMenuTile(
                           icon: Icons.badge_outlined,
                           title: 'License & Verification',
@@ -572,8 +600,9 @@ class _ProfileTabView extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCol(String label, String value) {
-    return Column(
+  Widget _buildStatCol(String label, String value, {VoidCallback? onTap}) {
+    final col = Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           value,
@@ -594,6 +623,18 @@ class _ProfileTabView extends StatelessWidget {
         ),
       ],
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10.r),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+          child: col,
+        ),
+      );
+    }
+    return col;
   }
 
   Widget _buildMenuTile({

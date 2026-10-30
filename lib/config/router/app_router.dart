@@ -21,6 +21,7 @@ import 'package:provider_app/src/presentation/screens/verification/license_verif
 import 'package:provider_app/src/presentation/screens/payout/bank_payout_details_screen.dart';
 import 'package:provider_app/src/presentation/screens/notifications/notification_preferences_screen.dart';
 import 'package:provider_app/src/presentation/screens/chat/chat_screen.dart';
+import 'package:provider_app/src/presentation/screens/reviews/customer_reviews_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -182,6 +183,10 @@ class AppRouter {
           }
           return ChatScreen(job: model);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.reviews,
+        builder: (context, state) => const CustomerReviewsScreen(),
       ),
     ],
   );
