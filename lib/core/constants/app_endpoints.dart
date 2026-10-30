@@ -29,6 +29,9 @@ class AppEndpoints {
   static const String providerPayoutAccounts = '/provider/payout-accounts';
   static const String providerWallet = '/provider/wallet';
   static const String providerNotifications = '/provider/notifications';
+  static String providerNotificationRead(int id) => '/provider/notifications/$id/read';
+  static const String providerNotificationMarkAllRead = '/provider/notifications/mark-all-read';
+  static String providerNotificationDelete(int id) => '/provider/notifications/$id';
   static const String providerServices = '/provider/services';
   static const String providerWorkingHours = '/provider/working-hours';
   static const String providerJobs = '/provider/jobs';

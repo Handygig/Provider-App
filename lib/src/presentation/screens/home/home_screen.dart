@@ -19,7 +19,9 @@ import 'package:provider_app/src/presentation/tabs/wallet_tab.dart';
 import 'package:provider_app/src/data/services/verification_service.dart';
 import 'package:provider_app/src/presentation/screens/verification/license_verification_screen.dart';
 import 'package:provider_app/src/presentation/widgets/dynamic_island_toast.dart';
-import 'package:provider_app/src/presentation/widgets/incoming_quotation_request_drawer.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider_app/src/presentation/cubits/notifications/notification_cubit.dart';
+import 'package:provider_app/src/presentation/cubits/notifications/notification_state.dart';
 import 'package:provider_app/src/data/services/provider_session_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -1344,21 +1346,45 @@ class _HomeScreenState extends State<HomeScreen>
                   SizedBox(width: 6.w),
 
                   // Bell Notification Icon
-                  GestureDetector(
-                    onTap: () => _onTabSelected(2),
-                    child: Container(
-                      width: 38.r,
-                      height: 38.r,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.notifications_none_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
+                  BlocBuilder<NotificationCubit, NotificationState>(
+                    builder: (context, notifState) {
+                      final int unread =
+                          context.read<NotificationCubit>().unreadCount;
+                      return GestureDetector(
+                        onTap: () => _onTabSelected(3),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 38.r,
+                              height: 38.r,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.notifications_none_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            if (unread > 0)
+                              Positioned(
+                                top: 5.r,
+                                right: 5.r,
+                                child: Container(
+                                  width: 8.r,
+                                  height: 8.r,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFD4DE95),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -2556,6 +2582,26 @@ class _HomeScreenState extends State<HomeScreen>
                         color: Colors.white,
                       ),
                     ),
+                  ),
+                if (index == 3)
+                  BlocBuilder<NotificationCubit, NotificationState>(
+                    builder: (context, notifState) {
+                      final int unread =
+                          context.read<NotificationCubit>().unreadCount;
+                      if (unread <= 0) return const SizedBox.shrink();
+                      return Positioned(
+                        right: -4.w,
+                        top: -2.h,
+                        child: Container(
+                          width: 8.r,
+                          height: 8.r,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFD97706),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      );
+                    },
                   ),
               ],
             ),
