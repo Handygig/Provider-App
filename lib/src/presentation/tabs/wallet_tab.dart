@@ -1513,7 +1513,7 @@ class _WalletTabState extends State<WalletTab> {
                                   ),
                                   SizedBox(width: 4.w),
                                   Text(
-                                    'Apex Home Solutions • Staff',
+                                    '${ProviderSessionService.instance.companyName} • Staff',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11.sp,
                                       fontWeight: FontWeight.w700,
@@ -1599,7 +1599,7 @@ class _WalletTabState extends State<WalletTab> {
                                       ),
                                     ),
                                     Text(
-                                      'Direct withdrawals disabled • Paid via Apex Home Solutions',
+                                      'Direct withdrawals disabled • Paid via ${ProviderSessionService.instance.companyName}',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 10.5.sp,
                                         color: Colors.white70,

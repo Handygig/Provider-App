@@ -44,6 +44,7 @@ class AppEndpoints {
   static String providerJobComplete(String id) => '/provider/jobs/$id/complete';
   static String providerJobRequestQuote(String id) => '/provider/job-requests/$id/quotations';
   static const String providerNotificationPreferences = '/provider/notification-preferences';
+  static const String providerReviews = '/provider/reviews';
   static const String services = '/services';
   static const String serviceCategories = '/service-categories';
 }

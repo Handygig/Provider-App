@@ -20,6 +20,7 @@ import 'src/presentation/cubits/services/managed_services_cubit.dart';
 import 'src/presentation/cubits/coverage/coverage_cubit.dart';
 import 'src/presentation/cubits/notifications/notification_preferences_cubit.dart';
 import 'src/presentation/cubits/notifications/notification_cubit.dart';
+import 'src/presentation/cubits/reviews/reviews_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,6 +72,9 @@ class ProviderApp extends StatelessWidget {
             ),
             BlocProvider<NotificationCubit>(
               create: (context) => sl<NotificationCubit>()..loadNotifications(),
+            ),
+            BlocProvider<ReviewsCubit>(
+              create: (context) => sl<ReviewsCubit>()..loadReviews(),
             ),
           ],
           child: ValueListenableBuilder<Locale>(

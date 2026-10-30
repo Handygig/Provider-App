@@ -80,6 +80,14 @@ import 'package:provider_app/src/domain/repositories/jobs/job_repository.dart';
 import 'package:provider_app/src/domain/usecases/jobs/job_usecases.dart';
 import 'package:provider_app/src/presentation/cubits/jobs/jobs_cubit.dart';
 
+// Reviews
+import 'package:provider_app/src/data/data_sources/remote/reviews/reviews_remote_data_source.dart';
+import 'package:provider_app/src/data/data_sources/remote/reviews/reviews_remote_data_source_impl.dart';
+import 'package:provider_app/src/data/repositories/reviews/reviews_repository_impl.dart';
+import 'package:provider_app/src/domain/repositories/reviews/reviews_repository.dart';
+import 'package:provider_app/src/domain/usecases/reviews/get_reviews_usecase.dart';
+import 'package:provider_app/src/presentation/cubits/reviews/reviews_cubit.dart';
+
 final sl = GetIt.instance;
 
 Future<void> initServiceLocator() async {
@@ -128,6 +136,9 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton<JobRemoteDataSource>(
     () => JobRemoteDataSourceImpl(dio: sl<Dio>()),
   );
+  sl.registerLazySingleton<ReviewsRemoteDataSource>(
+    () => ReviewsRemoteDataSourceImpl(dio: sl<Dio>()),
+  );
 
   // -------------------------------------------------------------
   // Repositories
@@ -164,6 +175,9 @@ Future<void> initServiceLocator() async {
   );
   sl.registerLazySingleton<JobRepository>(
     () => JobRepositoryImpl(remoteDataSource: sl<JobRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<ReviewsRepository>(
+    () => ReviewsRepositoryImpl(remoteDataSource: sl<ReviewsRemoteDataSource>()),
   );
 
   // -------------------------------------------------------------
@@ -288,6 +302,9 @@ Future<void> initServiceLocator() async {
   sl.registerLazySingleton<CompleteJobUseCase>(
     () => CompleteJobUseCase(sl<JobRepository>()),
   );
+  sl.registerLazySingleton<GetReviewsUseCase>(
+    () => GetReviewsUseCase(repository: sl<ReviewsRepository>()),
+  );
 
   // -------------------------------------------------------------
   // Blocs & Cubits
@@ -357,5 +374,8 @@ Future<void> initServiceLocator() async {
       requestExtraAmountUseCase: sl<RequestExtraAmountUseCase>(),
       completeJobUseCase: sl<CompleteJobUseCase>(),
     ),
+  );
+  sl.registerLazySingleton<ReviewsCubit>(
+    () => ReviewsCubit(getReviewsUseCase: sl<GetReviewsUseCase>()),
   );
 }
